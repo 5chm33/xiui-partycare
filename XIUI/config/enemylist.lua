@@ -38,6 +38,12 @@ local function DrawEnemyCareSettings()
     imgui.ShowHelp('Adds optional manual offensive spell controls only to XIUI Enemy List entries. Party List healing/support controls remain completely separate.');
     if care.enabled ~= true then return; end
 
+    -- Keep profiles created before this visible action in the intended default-on
+    -- state until the player explicitly turns it off.
+    if care.showDispelButton == nil then care.showDispelButton = true; end
+    components.DrawPartyCheckbox(care, 'Show Current-Target Dispel Button##ecDispelButton', 'showDispelButton');
+    imgui.ShowHelp('Shows a manual DISPEL button on the already selected Enemy List card. It does not claim a buff was detected; use it when you see or expect a dispellable enemy effect.');
+
     components.DrawPartyCheckbox(care, 'Enable Enemy List Hover Spell Actions##ecHoverEnable', 'hoverActionsEnabled');
     imgui.ShowHelp('A configured click or wheel gesture queues one spell only while hovering the already selected enemy. It never changes your target, selects a new target, or casts automatically.');
     if care.hoverActionsEnabled ~= true then return; end
@@ -54,7 +60,7 @@ local function DrawEnemyCareSettings()
     end
 
     imgui.TextDisabled('Wheel Up defaults to Dia and Wheel Down defaults to Paralyze. All bindings default off except the configured wheel spell choices; enable each binding deliberately.');
-    imgui.TextDisabled('Safety: hover actions cast only on the existing <t> target. Clicking a different enemy card remains XIUI Click to Target and does not cast a spell.');
+    imgui.TextDisabled('Safety: hover actions and the Dispel button cast only on the existing <t> target. Clicking a different enemy card remains XIUI Click to Target and does not cast a spell.');
 end
 
 -- Section: Enemy List Settings

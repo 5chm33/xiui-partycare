@@ -327,6 +327,7 @@ function M.createUserSettingsDefaults()
         enemyCare = T{
             enabled = false,
             hoverActionsEnabled = false,
+            showDispelButton = true,
             left = T{ enabled = false, spell = 'Blind' },
             right = T{ enabled = false, spell = 'Slow' },
             middle = T{ enabled = false, spell = 'Dia II' },

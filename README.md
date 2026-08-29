@@ -15,7 +15,8 @@ This is a **separate XIUI 1.8.3 integration build**. It keeps XIUI’s native pa
 | Manual PartyCare feature layer | Off | Adds no extra window or standalone PartyCare skin. |
 | Hover spell actions | Off | Left, right, middle, Mouse 4, Mouse 5, Wheel Up, and Wheel Down are independently configurable. Wheel Up defaults to **Refresh**; Wheel Down defaults to **Haste**. |
 | Remedy recommendations | On after feature layer is enabled | Shows only the highest-priority remedy that is eligible for your own current character. |
-| Clickable remedy action | On after feature layer is enabled | Shows a clear red `Remedy: <spell>` button inline with the affected XIUI party member’s name. |
+| Clickable remedy action | On after feature layer is enabled | Shows a clear full-width red `REMEDY: <spell>` action strip directly beneath the affected XIUI party card. |
+| Current-target Dispel action | On after Enemy List actions are enabled | Shows a blue `DISPEL` action strip on the currently selected XIUI Enemy List card. It is a manual cast control, not an automatic enemy-buff detector. |
 | Purple Refresh cue | Off | Purple pulse in the configured final lead time; solid purple when missing. The cue is restored after a completed observed Refresh later expires. |
 | Yellow Haste cue | Off | Yellow pulse in the configured final lead time; solid yellow when missing. |
 | Enemy List offensive hover actions | Off | A fully separate manual offensive layer for XIUI Enemy List cards. Wheel Up defaults to **Dia** and Wheel Down to **Paralyze**; Dia, Blind, Paralyze, Slow, Bind, Gravity, Sleep, Silence, Dispel, elemental enfeebles, and more are selectable. |
@@ -39,10 +40,10 @@ Open `/xiui`, navigate to **Party List**, and expand **PartyCare / Manual Care F
 | `/xiui` section | Controls |
 |---|---|
 | **Hover Spell Actions** | Enables any desired combination of Left Click, Right Click, Middle Click, Mouse 4, Mouse 5, Wheel Up, and Wheel Down. Each has its own spell selector. Click bindings default off so XIUI Click to Target keeps working until you deliberately enable one. |
-| **Remedy Suggestions and Manual Button** | Shows the highest-priority applicable remedy and, optionally, its clear red inline `Remedy: <spell>` button on the affected entry. It appears only for a verified debuff with an eligible remedy. |
+| **Remedy Suggestions and Manual Button** | Shows the highest-priority applicable remedy and, optionally, a high-visibility full-width red `REMEDY: <spell>` strip directly beneath the affected party card. It appears only for a verified debuff with an eligible remedy. |
 | **Refresh and Haste Name Cues** | Enables purple Refresh and yellow Haste name cues, maximum-MP threshold for Refresh, observed durations, and early-warning lead times. |
 | **Remedy Priority Rules** | Enables/disables individual direct-effect remedy rules and adjusts their priority. |
-| **Enemy List → Manual Offensive Hover Spells** | Independent left/right/middle/Mouse 4/Mouse 5/wheel bindings for offensive and enfeebling spells. It never changes targets: a binding can cast only when the hovered Enemy List card is already your selected `<t>` target. |
+| **Enemy List → Manual Offensive Hover Spells** | Independent left/right/middle/Mouse 4/Mouse 5/wheel bindings for offensive and enfeebling spells, plus an optional blue `DISPEL` action strip for the already selected card. No action changes targets. |
 
 ## Separate Enemy-List Offensive Actions
 
@@ -50,13 +51,15 @@ Open `/xiui`, select **Enemy List**, and expand **Manual Offensive Hover Spells*
 
 The Enemy List layer is opt-in. Its default spell choices are **Wheel Up = Dia** and **Wheel Down = Paralyze**, while all physical click bindings default disabled to preserve XIUI’s normal Click to Target behavior. Enable only the inputs you want, then choose from the dedicated offensive/enfeebling spell list.
 
-> **Current-target safeguard:** Hovering or clicking a different Enemy List card first preserves XIUI Click to Target and does not cast. An enemy-care command is constructed only for the already selected card and uses `/ma "Spell" <t>`—there is no automatic retargeting, background retry, or autonomous spell selection.
+When Enemy List actions are enabled, **Show Current-Target Dispel Button** provides a visible blue `DISPEL` strip on the card that is already selected as `<t>`. It is deliberately manual and does not assert that XIUI discovered a positive enemy effect; use it whenever you see or expect a dispellable buff. Disable the toggle if you prefer a completely hover-only enemy list.
+
+> **Current-target safeguard:** Hovering or clicking a different Enemy List card first preserves XIUI Click to Target and does not cast. An enemy-care command—including the blue `DISPEL` button—is constructed only for the already selected card and uses `/ma "Spell" <t>`—there is no automatic retargeting, background retry, or autonomous spell selection.
 
 ## Remedy Eligibility and Reliability
 
 Remedy eligibility is evaluated using **only your local player character’s current effective main job, subjob, and Level Sync-adjusted levels**. Party members’ job levels are never used to decide whether you can cast a spell. A confirmed unlearned spell or definite level lock is hidden. During short spellbook-loading transitions, level-eligible standard spells remain available as manual candidates rather than being falsely suppressed.
 
-The integration maps only direct, well-defined status icons to remedies. It intentionally excludes generic `stat_down` / Evasion Down-style icon groups because those can be ambiguous or transient around Level Sync and cannot safely be translated to one universal Erase recommendation.
+The integration maps only direct, well-defined status icons to remedies. When a verified status has an eligible local remedy, it renders a **full-width red `REMEDY: <spell>` strip beneath that party card**. This avoids the earlier name-row overlap issue and reserves its own space so the action remains visible and clickable. Generic `stat_down` / Evasion Down-style icon groups remain intentionally excluded because they can be ambiguous or transient around Level Sync and cannot safely be translated to one universal Erase recommendation.
 
 Visual priority is fixed to preserve clarity: **red actionable remedy alert**, then **purple Refresh**, then **yellow Haste**. XIUI now retains the local Refresh/Haste action separately from the cast-bar display. Once a local cast is observed, its name cue remains clear during the active interval, then **pulses throughout the configured final lead time even while the positive status icon is still visible**. At the expected end, a still-visible icon remains authoritative; once that icon disappears, the cue returns as solid missing purple or yellow. This timer is visual-only and does not cast, retarget, or retry spells.
 
@@ -70,7 +73,7 @@ This XIUI-native build focuses on manual native-card controls: party-list suppor
 
 ## Validation
 
-The included deterministic regression tests are `tests/test_partycare_integration.lua` and `tests/test_enemylistcare_integration.lua`. Together they cover standard spell eligibility, confirmed/unready spellbook handling, direct status mapping, remedy priority, support mouse-button/wheel dispatches, upkeep priority, cast-bar-independent Refresh observation, interruption handling, post-expiration re-alerting, and the separate Enemy List current-target/no-retarget safeguards. All XIUI Lua files and both regression tests passed local validation at package time.
+The included deterministic regression tests are `tests/test_partycare_integration.lua` and `tests/test_enemylistcare_integration.lua`. Together they cover standard spell eligibility, confirmed/unready spellbook handling, direct status mapping, remedy priority, support mouse-button/wheel dispatches, upkeep priority, cast-bar-independent Refresh observation, interruption handling, post-expiration re-alerting, the separate Enemy List current-target/no-retarget safeguards, and manual current-target Dispel dispatch. All XIUI Lua files and both regression tests passed local validation at package time.
 
 ## Rollback
 

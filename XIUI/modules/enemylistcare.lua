@@ -45,6 +45,12 @@ local function target_is_current(enemyIndex, currentTargetIndex, subTargetActive
     return enemy ~= nil and current ~= nil and enemy > 0 and enemy == current;
 end
 
+function enemyCare.CanShowManualDispel(enemyIndex, currentTargetIndex, subTargetActive)
+    local settings = get_settings();
+    return settings.enabled == true and settings.showDispelButton ~= false
+        and target_is_current(enemyIndex, currentTargetIndex, subTargetActive);
+end
+
 function enemyCare.BuildManualCommand(spellName, enemyIndex, currentTargetIndex, subTargetActive)
     if not safe_spell_name(spellName) then return nil; end
     if not target_is_current(enemyIndex, currentTargetIndex, subTargetActive) then return nil; end

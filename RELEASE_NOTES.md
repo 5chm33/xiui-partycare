@@ -1,5 +1,21 @@
 # Release Notes
 
+## v0.5.0 — Remedy Visibility and Manual Current-Target Dispel
+
+This correction release makes the party remedy action unmistakably visible and adds a manual Dispel action to the selected Enemy List card.
+
+| Area | Included behavior |
+|---|---|
+| Remedy visibility | Replaces the fragile name-row remedy label with a full-width red `REMEDY: <spell>` action strip immediately below the affected party card. The party-window layout now reserves dedicated space for it. |
+| Existing profiles | A missing legacy `showRemedyButtons` setting now defaults to enabled unless the player explicitly disables it in `/xiui` → **Party List**. |
+| Enemy List Dispel | Adds an optional blue `DISPEL` strip on the Enemy List card that is already the selected `<t>` target. It is separately controlled under `/xiui` → **Enemy List** → **Manual Offensive Hover Spells**. |
+| Safety | Clicking either action queues exactly one manual `/ma "Spell" <target>` command. Neither action selects a target, retargets, retries, or casts automatically. |
+| Honest effect scope | The Dispel strip is a manual “potential buff” action; it does not claim that XIUI detected an enemy positive effect, because that data is not authoritative in the available enemy-list feed. |
+
+### Verification
+
+All XIUI Lua sources passed syntax validation. The PartyCare test suite passed, and the Enemy List suite now also verifies the manual Dispel-button visibility gate and `/ma "Dispel" <t>` dispatch, along with wrong-card, subtarget, and disabled-feature safety rejections. The packaged archive was subsequently validated from a clean extraction.
+
 ## v0.4.0 — Separate Enemy List Offensive Hover Actions
 
 This release adds a second, independent manual-action layer to XIUI’s native **Enemy List**. It is intentionally separate from Party List healing, support, remedy, and Refresh/Haste settings.

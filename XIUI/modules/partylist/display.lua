@@ -548,6 +548,7 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
     -- Position name text.  PartyCare keeps XIUI's native name rendering and
     -- substitutes color only for an actionable remedy or opt-in upkeep cue.
     local careState = partyCare.GetMemberState(memInfo, memIdx);
+    local partyCareConfig = gConfig.partyCare;
     local nameColor = partyCare.GetNameColor(careState, cache.colors.nameTextColor);
     local nameTextX = namePosX + textOffsets.nameX;
     local nameTextY = hpStartY - nameRefHeight - settings.nameTextOffsetY + nameBaselineOffset + textOffsets.nameY;
@@ -1081,6 +1082,33 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
         end
     end
 
+    -- A high-visibility, full-width remedy strip is drawn below the actual XIUI
+    -- party card.  The prior name-row placement could overlap text/status layouts
+    -- and disappear outside the entry bounds.  This action strip is only shown
+    -- for a verified eligible remedy and remains an explicit manual click.
+    local remedyLabel = partyCare.GetRemedyLabel(careState);
+    local showRemedyButton = remedyLabel ~= nil and careState.enabled and type(partyCareConfig) == 'table'
+        and partyCareConfig.showRemedyButtons ~= false and memInfo.inzone and not isPreviewMode and not showConfig[1];
+    local remedyButtonHeight = 0;
+    if showRemedyButton then
+        local currentCursorPositionX, currentCursorPositionY = imgui.GetCursorScreenPos();
+        local entryStartY = hpStartY - nameRefHeight - settings.nameTextOffsetY;
+        local buttonY = entryStartY + entryHeight + 3;
+        remedyButtonHeight = math.max(18, nameRefHeight + 6);
+        imgui.SetCursorScreenPos({hpStartX, buttonY});
+        imgui.PushStyleColor(ImGuiCol_Button, {0.48, 0.10, 0.10, 0.94});
+        imgui.PushStyleColor(ImGuiCol_ButtonHovered, {0.74, 0.18, 0.18, 1.00});
+        imgui.PushStyleColor(ImGuiCol_ButtonActive, {0.32, 0.05, 0.05, 1.00});
+        if imgui.Button('REMEDY: ' .. remedyLabel .. '##PartyCareRemedy' .. memIdx, {allBarsLengths, remedyButtonHeight}) then
+            partyCare.DispatchRemedy(careState, memIdx);
+        end
+        imgui.PopStyleColor(3);
+        if imgui.IsItemHovered() then
+            imgui.SetTooltip('Manual cast: ' .. remedyLabel .. '. Uses the configured remedy priority and your current local job/subjob eligibility.');
+        end
+        imgui.SetCursorScreenPos({currentCursorPositionX, currentCursorPositionY});
+    end
+
     -- Sync indicator
     if (memInfo.sync) then
         draw_circle({hpStartX + settings.dotRadius/2, hpStartY + barHeight}, settings.dotRadius, {.5, .5, 1, 1}, settings.dotRadius * 3, true, nil, GetUIDrawList());
@@ -1102,6 +1130,9 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
     else
         bottomSpacing = settings.hpTextOffsetY + hpRefHeight;
     end
+    -- Reserve vertical space for the remedy strip so it cannot overlap the next
+    -- party card or fall outside XIUI's auto-sized party window.
+    bottomSpacing = bottomSpacing + remedyButtonHeight + (showRemedyButton and 3 or 0);
     imgui.Dummy({0, bottomSpacing});
 
     if (not isLastVisibleMember) then
@@ -1112,7 +1143,6 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
     -- Create a native party-entry hit region only when XIUI click targeting or
     -- PartyCare hover controls are enabled.  The wheel command is dispatched
     -- exclusively from this explicit user interaction; it never auto-casts.
-    local partyCareConfig = gConfig.partyCare;
     local hoverCareEnabled = careState.enabled and partyCareConfig and partyCareConfig.hoverActionsEnabled == true;
     local needsEntryHitRegion = gConfig.enablePartyListClickTarget or hoverCareEnabled;
     if (memInfo.inzone and not isPreviewMode and not showConfig[1] and needsEntryHitRegion) then
@@ -1146,26 +1176,6 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
         imgui.SetCursorScreenPos({currentCursorPositionX, currentCursorPositionY});
     end
 
-    -- A clearly visible, explicit remedy button appears inline with the member
-    -- name only for a verified actionable recommendation.  It remains a
-    -- distinct manual click even when XIUI click-to-target is enabled.
-    local remedyLabel = partyCare.GetRemedyLabel(careState);
-    if (remedyLabel ~= nil and careState.enabled and partyCareConfig and partyCareConfig.showRemedyButtons == true
-        and memInfo.inzone and not isPreviewMode and not showConfig[1]) then
-        local currentCursorPositionX, currentCursorPositionY = imgui.GetCursorScreenPos();
-        imgui.SetCursorScreenPos({nameTextX + nameWidth + 5, nameTextY - 1});
-        imgui.PushStyleColor(ImGuiCol_Button, {0.48, 0.10, 0.10, 0.92});
-        imgui.PushStyleColor(ImGuiCol_ButtonHovered, {0.74, 0.18, 0.18, 1.00});
-        imgui.PushStyleColor(ImGuiCol_ButtonActive, {0.32, 0.05, 0.05, 1.00});
-        if imgui.SmallButton('Remedy: ' .. remedyLabel .. '##PartyCareRemedy' .. memIdx) then
-            partyCare.DispatchRemedy(careState, memIdx);
-        end
-        imgui.PopStyleColor(3);
-        if imgui.IsItemHovered() then
-            imgui.SetTooltip('Manual cast: ' .. remedyLabel .. '. Uses the configured remedy priority and your current local job/subjob eligibility.');
-        end
-        imgui.SetCursorScreenPos({currentCursorPositionX, currentCursorPositionY});
-    end
 
 end
 

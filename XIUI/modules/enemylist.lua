@@ -225,8 +225,10 @@ enemylist.DrawWindow = function(settings)
 				-- Set ImGui cursor for this entry
 				imgui.SetCursorScreenPos({entryStartX - windowMargin, entryStartY});
 
-				-- Entry width is the content area (barWidth), not including window margins
-				local entryWidth = settings.barWidth;
+									-- Entry width is the content area (barWidth), not including window margins
+					local entryWidth = settings.barWidth;
+					local enemyCareConfig = gConfig.enemyCare;
+
 				-- Scale padding and gaps based on bar dimensions to prevent negative sizes at low scales
 				-- Base values at scale 1.0: padding=10, nameToBarGap=10, barToInfoGap=5
 				local scaleX = entryWidth / 125;  -- 125 is the default barWidth
@@ -279,7 +281,18 @@ enemylist.DrawWindow = function(settings)
 					totalContentHeight = totalContentHeight + barToInfoGap + castBarHeight
 						+ math.max(2 * scaleY, 1) + castTextHeight;
 				end
-				local entryHeight = (padding * 2) + totalContentHeight;
+					local entryHeight = (padding * 2) + totalContentHeight;
+					local entryInteractiveHeight = entryHeight;
+					-- XIUI has no authoritative remote positive-enemy-buff feed.  This is
+					-- therefore an explicit manual Dispel control on the currently selected
+					-- enemy, not an automatic "buff detected" claim or recommendation.
+					local showManualDispelButton = not HzLimitedMode and not isPreviewMode and not showConfig[1]
+						and enemyCare.CanShowManualDispel(k, targetIndex, subTargetActive);
+					local dispelButtonGap = showManualDispelButton and math.max(2 * scaleY, 2) or 0;
+					local dispelButtonHeight = showManualDispelButton and math.max(18, nameHeight + 5) or 0;
+					if showManualDispelButton then
+						entryHeight = entryHeight + dispelButtonGap + dispelButtonHeight;
+					end
 
 				-- Prepare distance and HP% text separately
 				local distanceText = '';
@@ -439,7 +452,26 @@ enemylist.DrawWindow = function(settings)
 					end
 				end
 
-				-- ===== DEBUFF ICONS =====
+									-- A visible manual action for a potential enemy buff.  It is intentionally
+					-- shown only on the selected <t> card, uses no target-changing command,
+					-- and remains available even when the separate hover bindings are off.
+					if showManualDispelButton then
+						local dispelButtonY = entryStartY + entryInteractiveHeight + dispelButtonGap;
+						imgui.SetCursorScreenPos({barX, dispelButtonY});
+						imgui.PushStyleColor(ImGuiCol_Button, {0.17, 0.32, 0.58, 0.96});
+						imgui.PushStyleColor(ImGuiCol_ButtonHovered, {0.25, 0.48, 0.80, 1.00});
+						imgui.PushStyleColor(ImGuiCol_ButtonActive, {0.10, 0.20, 0.38, 1.00});
+						if imgui.Button('DISPEL##EnemyCareDispel' .. k, {barWidth, dispelButtonHeight}) then
+							enemyCare.DispatchManualSpell('Dispel', k, targetIndex, subTargetActive);
+						end
+						imgui.PopStyleColor(3);
+						if imgui.IsItemHovered() then
+							imgui.SetTooltip('Manual cast: Dispel on the current <t> target. This button does not assert that a buff was detected.');
+						end
+					end
+
+					-- ===== DEBUFF ICONS =====
+
 				-- Positioned at left or right of entry based on anchor setting (offset by user settings)
 				if (gConfig.showEnemyListDebuffs) then
 					local buffIds = nil;
@@ -549,14 +581,15 @@ enemylist.DrawWindow = function(settings)
 					-- enemy-care bindings.  Enemy-care never changes target: it casts only
 					-- when this exact card is already the current target, otherwise the
 					-- normal left-click targeting behavior remains available.
-					local enemyCareConfig = gConfig.enemyCare;
 					local hoverEnemyCareEnabled = type(enemyCareConfig) == 'table'
 						and enemyCareConfig.enabled == true and enemyCareConfig.hoverActionsEnabled == true;
 					local needsEntryHitRegion = gConfig.enableEnemyListClickTarget or hoverEnemyCareEnabled;
 					if (not HzLimitedMode and not isPreviewMode and not showConfig[1] and needsEntryHitRegion) then
 						local currentCursorPositionX, currentCursorPositionY = imgui.GetCursorScreenPos();
 						imgui.SetCursorScreenPos({entryStartX, entryStartY});
-						local entryClicked = imgui.InvisibleButton('EnemyEntry' .. k, {entryWidth, entryHeight});
+						-- Keep the normal entry hit region above the Dispel strip so the
+						-- explicit button never overlaps or falls through to click-to-target.
+						local entryClicked = imgui.InvisibleButton('EnemyEntry' .. k, {entryWidth, entryInteractiveHeight});
 						local enemyCareConsumedClick = false;
 						if hoverEnemyCareEnabled and imgui.IsItemHovered() then
 							for button = 0, 4 do

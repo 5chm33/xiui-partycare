@@ -49,6 +49,13 @@ local PARTYCARE_REMEDY_LABELS = {
 local function DrawPartyCareSettings()
     local care = gConfig.partyCare;
     if type(care) ~= 'table' then return; end
+
+    -- Profiles created before the explicit remedy-button control can retain a
+    -- partial nested table. Keep its UI state aligned with the intended default:
+    -- show an actionable remedy button unless the player has explicitly disabled it.
+    if care.showRemedySuggestions == nil then care.showRemedySuggestions = true; end
+    if care.showRemedyButtons == nil then care.showRemedyButtons = true; end
+
     if not components.CollapsingSection('PartyCare / Manual Care Features##partyCare') then return; end
 
     components.DrawPartyCheckbox(care, 'Enable Manual PartyCare Features##pcEnable', 'enabled');

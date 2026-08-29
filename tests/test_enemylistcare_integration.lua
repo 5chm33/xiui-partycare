@@ -45,6 +45,16 @@ end
 
 _G.gConfig = base_config();
 
+-- The visible Dispel control is an explicit manual option, not an inferred
+-- enemy-buff detector. It can be shown only on the already selected enemy and
+-- must disappear for a different card, a subtarget cursor, or an explicit off.
+assert_truthy(enemyCare.CanShowManualDispel(200, 200, false), 'current enemy must show manual Dispel when enabled');
+assert_equal(enemyCare.CanShowManualDispel(200, 201, false), false, 'different enemy must not show manual Dispel');
+assert_equal(enemyCare.CanShowManualDispel(200, 200, true), false, 'subtarget mode must not show manual Dispel');
+_G.gConfig.enemyCare.showDispelButton = false;
+assert_equal(enemyCare.CanShowManualDispel(200, 200, false), false, 'explicitly disabled Dispel button must remain hidden');
+_G.gConfig.enemyCare.showDispelButton = true;
+
 -- Commands always use the pre-existing <t> and never issue /target. The hovered
 -- enemy must be the already selected target, preserving entirely manual targeting.
 assert_equal(enemyCare.BuildManualCommand('Dia', 200, 200, false), '/ma "Dia" <t>', 'current enemy command');
@@ -72,17 +82,19 @@ assert_truthy(enemyCare.HandleHoverWheel(200, 200, false, 1), 'wheel up must dis
 assert_equal(queuedCommands[6], '/ma "Dia" <t>', 'wheel up command');
 assert_truthy(enemyCare.HandleHoverWheel(200, 200, false, -1), 'wheel down must dispatch manual offensive spell');
 assert_equal(queuedCommands[7], '/ma "Paralyze" <t>', 'wheel down command');
+assert_truthy(enemyCare.DispatchManualSpell('Dispel', 200, 200, false), 'manual Dispel button action must dispatch on the current target');
+assert_equal(queuedCommands[8], '/ma "Dispel" <t>', 'manual Dispel button command');
 
 -- A configured binding never casts merely because the cursor is on a different
 -- enemy card or the player is in subtarget selection.
 assert_equal(enemyCare.HandleHoverWheel(200, 201, false, 1), false, 'wrong enemy wheel event must not cast');
 assert_equal(enemyCare.HandleHoverWheel(200, 200, true, 1), false, 'subtarget wheel event must not cast');
-assert_equal(#queuedCommands, 7, 'safety rejections must not queue a command');
+assert_equal(#queuedCommands, 8, 'safety rejections must not queue a command');
 
 -- Fully disabling the feature restores normal XIUI behavior and blocks dispatch.
 _G.gConfig.enemyCare.enabled = false;
 assert_equal(enemyCare.IsMouseButtonBound(0), false, 'disabled feature must hide mouse binding');
 assert_equal(enemyCare.HandleMouseButton(200, 200, false, 0), false, 'disabled feature must not dispatch');
-assert_equal(#queuedCommands, 7, 'disabled feature must not queue a command');
+assert_equal(#queuedCommands, 8, 'disabled feature must not queue a command');
 
 print('test_enemylistcare_integration.lua: PASS');
