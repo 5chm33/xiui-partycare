@@ -6,9 +6,9 @@ This is a **separate XIUI 1.8.3 integration build**. It keeps XIUI’s native pa
 
 ## Demonstration
 
-[![Preview of the XIUI PartyCare fusion demonstration video.](docs/images/xiui-partycare-demo-preview.jpg)](https://github.com/5chm33/xiui-partycare/raw/refs/heads/main/docs/media/xiui-partycare-demo.mp4)
+![15-second looping in-game demonstration of the XIUI PartyCare fusion in action.](docs/images/xiui-partycare-live-demo.gif)
 
-> **Watch the 32-second in-game demonstration:** Click the preview above, or use this direct [MP4 demonstration link](https://github.com/5chm33/xiui-partycare/raw/refs/heads/main/docs/media/xiui-partycare-demo.mp4). The clip shows the native XIUI Party List PartyCare configuration and the manual-care controls in action.
+> **Inline in-game demonstration:** This 15-second GIF loops directly on the front page and shows the fusion in action during combat. The original full 32-second capture remains available as an optional [high-quality MP4 download](https://github.com/5chm33/xiui-partycare/raw/refs/heads/main/docs/media/xiui-partycare-demo.mp4).
 
 | Capability | Default | Native XIUI behavior |
 |---|---:|---|
