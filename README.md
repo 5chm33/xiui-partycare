@@ -4,6 +4,12 @@ This is a **separate XIUI 1.8.3 integration build**. It keeps XIUI’s native pa
 
 > **Safety contract:** Nothing in this build casts automatically or changes your selected target. A spell is queued only after you explicitly click the dedicated remedy button or use a configured mouse button/wheel action while hovering an in-zone XIUI party entry.
 
+## Demonstration
+
+[![Preview of the XIUI PartyCare fusion demonstration video.](docs/images/xiui-partycare-demo-preview.jpg)](https://github.com/5chm33/xiui-partycare/raw/refs/heads/main/docs/media/xiui-partycare-demo.mp4)
+
+> **Watch the 32-second in-game demonstration:** Click the preview above, or use this direct [MP4 demonstration link](https://github.com/5chm33/xiui-partycare/raw/refs/heads/main/docs/media/xiui-partycare-demo.mp4). The clip shows the native XIUI Party List PartyCare configuration and the manual-care controls in action.
+
 | Capability | Default | Native XIUI behavior |
 |---|---:|---|
 | Manual PartyCare feature layer | Off | Adds no extra window or standalone PartyCare skin. |
