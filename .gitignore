@@ -1,0 +1,15 @@
+# Local Ashita/XIUI runtime state
+XIUI/settings/
+XIUI/profiles/
+
+# Editor and operating-system files
+.vscode/
+.idea/
+*.swp
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Keep the versioned release archive under release/; ignore ad-hoc build copies elsewhere.
+*.zip
+!release/*.zip
