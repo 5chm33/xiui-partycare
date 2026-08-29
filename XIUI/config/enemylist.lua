@@ -10,6 +10,53 @@ local imgui = require('imgui');
 
 local M = {};
 
+-- These controls are deliberately separate from Party List PartyCare support
+-- bindings. They are manual offensive/enfeebling spells for Enemy List entries.
+local ENEMYCARE_SPELL_OPTIONS = {
+    'Dia', 'Dia II', 'Dia III', 'Bio', 'Bio II', 'Blind', 'Blind II',
+    'Paralyze', 'Paralyze II', 'Slow', 'Slow II', 'Gravity', 'Gravity II',
+    'Bind', 'Sleep', 'Sleep II', 'Silence', 'Dispel', 'Poison', 'Poison II',
+    'Burn', 'Choke', 'Drown', 'Frost', 'Rasp', 'Shock', 'Aspir', 'Drain',
+};
+
+local ENEMYCARE_MOUSE_BINDINGS = {
+    { key = 'left', label = 'Left Click', defaultSpell = 'Blind' },
+    { key = 'right', label = 'Right Click', defaultSpell = 'Slow' },
+    { key = 'middle', label = 'Middle Click', defaultSpell = 'Dia II' },
+    { key = 'mouse4', label = 'Mouse 4', defaultSpell = 'Bind' },
+    { key = 'mouse5', label = 'Mouse 5', defaultSpell = 'Gravity' },
+    { key = 'wheelUp', label = 'Wheel Up', defaultSpell = 'Dia' },
+    { key = 'wheelDown', label = 'Wheel Down', defaultSpell = 'Paralyze' },
+};
+
+local function DrawEnemyCareSettings()
+    local care = gConfig.enemyCare;
+    if type(care) ~= 'table' then return; end
+    if not components.CollapsingSection('Manual Offensive Hover Spells##enemyCare') then return; end
+
+    components.DrawPartyCheckbox(care, 'Enable Enemy List Manual Spell Actions##ecEnable', 'enabled');
+    imgui.ShowHelp('Adds optional manual offensive spell controls only to XIUI Enemy List entries. Party List healing/support controls remain completely separate.');
+    if care.enabled ~= true then return; end
+
+    components.DrawPartyCheckbox(care, 'Enable Enemy List Hover Spell Actions##ecHoverEnable', 'hoverActionsEnabled');
+    imgui.ShowHelp('A configured click or wheel gesture queues one spell only while hovering the already selected enemy. It never changes your target, selects a new target, or casts automatically.');
+    if care.hoverActionsEnabled ~= true then return; end
+
+    for _, bindingInfo in ipairs(ENEMYCARE_MOUSE_BINDINGS) do
+        local key = bindingInfo.key;
+        care[key] = care[key] or { enabled = false, spell = bindingInfo.defaultSpell };
+        local binding = care[key];
+        components.DrawPartyCheckbox(binding, 'Enable ' .. bindingInfo.label .. '##ec' .. key .. 'Enable', 'enabled');
+        components.DrawComboBox(bindingInfo.label .. ' Spell##ec' .. key .. 'Spell', binding.spell or bindingInfo.defaultSpell, ENEMYCARE_SPELL_OPTIONS, function(newValue)
+            binding.spell = newValue;
+            SaveSettingsOnly();
+        end);
+    end
+
+    imgui.TextDisabled('Wheel Up defaults to Dia and Wheel Down defaults to Paralyze. All bindings default off except the configured wheel spell choices; enable each binding deliberately.');
+    imgui.TextDisabled('Safety: hover actions cast only on the existing <t> target. Clicking a different enemy card remains XIUI Click to Target and does not cast a spell.');
+end
+
 -- Section: Enemy List Settings
 function M.DrawSettings()
     components.DrawCheckbox('Enabled', 'showEnemyList', CheckVisibility);
@@ -39,6 +86,9 @@ function M.DrawSettings()
             imgui.ShowHelp('Click on an enemy entry to target it. Requires /shorthand to be enabled.');
         end
     end
+
+    imgui.Spacing();
+    DrawEnemyCareSettings();
 
     if components.CollapsingSection('Scale & Position##enemyList') then
         components.DrawSlider('Scale X', 'enemyListScaleX', 0.1, 3.0, '%.1f');

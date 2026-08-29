@@ -1,5 +1,27 @@
 # Release Notes
 
+## v0.4.0 — Separate Enemy List Offensive Hover Actions
+
+This release adds a second, independent manual-action layer to XIUI’s native **Enemy List**. It is intentionally separate from Party List healing, support, remedy, and Refresh/Haste settings.
+
+| Area | Included behavior |
+|---|---|
+| Native XIUI placement | Controls live under `/xiui` → **Enemy List** → **Manual Offensive Hover Spells**. No additional standalone window or PartyCare skin is added. |
+| Independent bindings | Left click, right click, middle click, Mouse 4, Mouse 5, Wheel Up, and Wheel Down each have their own enable switch and offensive/enfeebling spell selector. Wheel Up defaults to **Dia**; Wheel Down defaults to **Paralyze**. |
+| Spell choices | Includes Dia, Bio, Blind, Paralyze, Slow, Gravity, Bind, Sleep, Silence, Dispel, selected elemental enfeebles, Aspir, Drain, and their available listed variants. |
+| Current-target safeguard | A spell is queued only after a deliberate hover click/wheel event on the Enemy List card that is already the current `<t>` target. Hovering a different enemy never retargets or casts. |
+| Click-to-target compatibility | When an enemy-care binding cannot dispatch because the card is not the current target, XIUI’s standard left-click **Click to Target** behavior remains available. |
+
+> **Manual-action safety:** This feature never changes target selection, performs background retries, chooses spells automatically, or reacts to enemy buffs. It queues only the user’s configured spell and only after an explicit input over the currently selected enemy card.
+
+### Verification
+
+All XIUI Lua sources passed syntax validation. `tests/test_enemylistcare_integration.lua` passed deterministic coverage for every supported mouse binding, safe `/ma "Spell" <t>` construction, disabled-feature behavior, wrong-card rejection, and subtarget-mode rejection. The existing PartyCare party-list regression suite also remains part of the full validation run.
+
+### Known Scope
+
+This adds manual offensive/enfeebling spell dispatch only. It does not restore the prior experimental automatic enemy-Dispel recommendation behavior, because enemy-buff visibility is not reliable enough to make automatic recommendations authoritative.
+
 ## v0.3.0 — XIUI 1.8.3 PartyCare Fusion
 
 This first release packages a separate XIUI 1.8.3 build that embeds optional PartyCare-style manual care features directly into XIUI’s native party list. It does not modify or supersede the standalone PartyCare addons.

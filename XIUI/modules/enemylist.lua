@@ -7,6 +7,7 @@ local actionTracker = require('handlers.actiontracker');
 local enemyCasts = require('handlers.enemycasts');
 local progressbar = require('libs.progressbar');
 local defaultPositions = require('libs.defaultpositions');
+local enemyCare = require('modules.enemylistcare');
 
 -- Note: RENDER_FLAG_VISIBLE and RENDER_FLAG_HIDDEN are now imported from helpers.lua
 
@@ -544,19 +545,45 @@ enemylist.DrawWindow = function(settings)
 					end
 				end
 
-				-- Add a click target over the entire entry to /target that mob (disabled in limited mode, preview mode, config open, or by config)
-				if (not HzLimitedMode and not isPreviewMode and not showConfig[1] and gConfig.enableEnemyListClickTarget) then
-					imgui.SetCursorScreenPos({entryStartX, entryStartY});
-					if imgui.InvisibleButton('EnemyEntry' .. k, {entryWidth, entryHeight}) then
-						local clickEntityMgr = AshitaCore:GetMemoryManager():GetEntity();
-						if clickEntityMgr ~= nil then
-							local serverId = clickEntityMgr:GetServerId(k);
-							if serverId ~= nil and serverId > 0 then
-								AshitaCore:GetChatManager():QueueCommand(-1, '/target ' .. serverId);
+					-- One native hit region serves click-to-target and the separate optional
+					-- enemy-care bindings.  Enemy-care never changes target: it casts only
+					-- when this exact card is already the current target, otherwise the
+					-- normal left-click targeting behavior remains available.
+					local enemyCareConfig = gConfig.enemyCare;
+					local hoverEnemyCareEnabled = type(enemyCareConfig) == 'table'
+						and enemyCareConfig.enabled == true and enemyCareConfig.hoverActionsEnabled == true;
+					local needsEntryHitRegion = gConfig.enableEnemyListClickTarget or hoverEnemyCareEnabled;
+					if (not HzLimitedMode and not isPreviewMode and not showConfig[1] and needsEntryHitRegion) then
+						local currentCursorPositionX, currentCursorPositionY = imgui.GetCursorScreenPos();
+						imgui.SetCursorScreenPos({entryStartX, entryStartY});
+						local entryClicked = imgui.InvisibleButton('EnemyEntry' .. k, {entryWidth, entryHeight});
+						local enemyCareConsumedClick = false;
+						if hoverEnemyCareEnabled and imgui.IsItemHovered() then
+							for button = 0, 4 do
+								if imgui.IsItemClicked(button) and enemyCare.IsMouseButtonBound(button) then
+									-- Consume only a successful explicit manual cast.  Clicking a
+									-- different enemy therefore still retains XIUI's normal
+									-- click-to-target behavior; no spell is issued until it is <t>.
+									enemyCareConsumedClick = enemyCare.HandleMouseButton(k, targetIndex, subTargetActive, button) or enemyCareConsumedClick;
+								end
+							end
+							local io = imgui.GetIO();
+							local wheelDelta = io and tonumber(io.MouseWheel) or 0;
+							if wheelDelta ~= 0 then
+								enemyCare.HandleHoverWheel(k, targetIndex, subTargetActive, wheelDelta);
 							end
 						end
+						if entryClicked and gConfig.enableEnemyListClickTarget and not enemyCareConsumedClick then
+							local clickEntityMgr = AshitaCore:GetMemoryManager():GetEntity();
+							if clickEntityMgr ~= nil then
+								local serverId = clickEntityMgr:GetServerId(k);
+								if serverId ~= nil and serverId > 0 then
+									AshitaCore:GetChatManager():QueueCommand(-1, '/target ' .. serverId);
+								end
+							end
+						end
+						imgui.SetCursorScreenPos({currentCursorPositionX, currentCursorPositionY});
 					end
-				end
 
 				-- Update column height tracking (include spacing for next entry)
 				currentColumnHeight = currentColumnHeight + entryHeight + entrySpacingY;

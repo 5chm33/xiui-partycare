@@ -321,6 +321,21 @@ function M.createUserSettingsDefaults()
         enemyListTargetWidth = 64,
         enemyListTargetFontSize = 8,
 
+        -- Optional PartyCare-style offensive actions embedded in XIUI's native
+        -- Enemy List. These bindings are independent from Party List support
+        -- actions and only ever cast on the already selected <t> target.
+        enemyCare = T{
+            enabled = false,
+            hoverActionsEnabled = false,
+            left = T{ enabled = false, spell = 'Blind' },
+            right = T{ enabled = false, spell = 'Slow' },
+            middle = T{ enabled = false, spell = 'Dia II' },
+            mouse4 = T{ enabled = false, spell = 'Bind' },
+            mouse5 = T{ enabled = false, spell = 'Gravity' },
+            wheelUp = T{ enabled = true, spell = 'Dia' },
+            wheelDown = T{ enabled = true, spell = 'Paralyze' },
+        },
+
         expBarScaleX = 1,
         expBarScaleY = 1,
         showExpBarBookends = false,
