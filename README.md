@@ -23,6 +23,12 @@ For a clean test, unload or disable the standalone PartyCare addon first. This p
 
 Open `/xiui`, navigate to **Party List**, and expand **PartyCare / Manual Care Features**. Enable the master toggle, then independently enable whichever capabilities you want.
 
+### Settings Preview
+
+![XIUI Party List configuration panel showing the PartyCare Manual Care Features and configurable mouse spell bindings.](docs/images/xiui-partycare-settings.png)
+
+> **Native configuration in XIUI:** The PartyCare controls live directly inside the Party List settings panel, including separate spell selectors for Left Click, Right Click, Middle Click, Mouse 4, Mouse 5, and the mouse wheel.
+
 | `/xiui` section | Controls |
 |---|---|
 | **Hover Spell Actions** | Enables any desired combination of Left Click, Right Click, Middle Click, Mouse 4, Mouse 5, Wheel Up, and Wheel Down. Each has its own spell selector. Click bindings default off so XIUI Click to Target keeps working until you deliberately enable one. |
