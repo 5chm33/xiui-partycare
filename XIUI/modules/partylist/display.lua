@@ -30,6 +30,48 @@ local forcePositionReset = { false, false, false };
 local lastSavedPosX = { nil, nil, nil };
 local lastSavedPosY = { nil, nil, nil };
 
+-- Remedy buttons are stored while a party window is built, then rendered in
+-- separate tiny ImGui windows after the native party window ends. This keeps
+-- the explicit action above XIUI's card draw layers and prevents clipping.
+local remedyOverlays = { {}, {}, {} };
+
+local function DrawRemedyOverlays(partyIndex)
+    local overlays = remedyOverlays[partyIndex];
+    if type(overlays) ~= 'table' then return; end
+
+    for memberIndex, overlay in pairs(overlays) do
+        if overlay and overlay.state and overlay.label then
+            imgui.PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
+            imgui.SetNextWindowPos({overlay.x, overlay.y});
+            imgui.SetNextWindowSize({overlay.width, overlay.height});
+            local overlayFlags = bit.bor(
+                ImGuiWindowFlags_NoDecoration,
+                ImGuiWindowFlags_NoMove,
+                ImGuiWindowFlags_NoFocusOnAppearing,
+                ImGuiWindowFlags_NoNav,
+                ImGuiWindowFlags_NoBackground,
+                ImGuiWindowFlags_NoSavedSettings,
+                ImGuiWindowFlags_NoBringToFrontOnFocus,
+                ImGuiWindowFlags_NoDocking
+            );
+            if imgui.Begin('PartyCareRemedyActionOverlay##' .. partyIndex .. '_' .. memberIndex, true, overlayFlags) then
+                imgui.PushStyleColor(ImGuiCol_Button, {0.48, 0.10, 0.10, 0.98});
+                imgui.PushStyleColor(ImGuiCol_ButtonHovered, {0.78, 0.20, 0.20, 1.00});
+                imgui.PushStyleColor(ImGuiCol_ButtonActive, {0.32, 0.05, 0.05, 1.00});
+                if imgui.Button('REMEDY: ' .. overlay.label .. '##PartyCareRemedy' .. memberIndex, {overlay.width, overlay.height}) then
+                    partyCare.DispatchRemedy(overlay.state, memberIndex);
+                end
+                imgui.PopStyleColor(3);
+                if imgui.IsItemHovered() then
+                    imgui.SetTooltip('Manual cast: ' .. overlay.label .. '. Uses the configured remedy priority and your current local job/subjob eligibility.');
+                end
+            end
+            imgui.End();
+            imgui.PopStyleVar(1);
+        end
+    end
+end
+
 function display.ResetFont()
     imtext.Reset();
 end
@@ -1091,22 +1133,16 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
         and partyCareConfig.showRemedyButtons ~= false and memInfo.inzone and not isPreviewMode and not showConfig[1];
     local remedyButtonHeight = 0;
     if showRemedyButton then
-        local currentCursorPositionX, currentCursorPositionY = imgui.GetCursorScreenPos();
         local entryStartY = hpStartY - nameRefHeight - settings.nameTextOffsetY;
-        local buttonY = entryStartY + entryHeight + 3;
         remedyButtonHeight = math.max(18, nameRefHeight + 6);
-        imgui.SetCursorScreenPos({hpStartX, buttonY});
-        imgui.PushStyleColor(ImGuiCol_Button, {0.48, 0.10, 0.10, 0.94});
-        imgui.PushStyleColor(ImGuiCol_ButtonHovered, {0.74, 0.18, 0.18, 1.00});
-        imgui.PushStyleColor(ImGuiCol_ButtonActive, {0.32, 0.05, 0.05, 1.00});
-        if imgui.Button('REMEDY: ' .. remedyLabel .. '##PartyCareRemedy' .. memIdx, {allBarsLengths, remedyButtonHeight}) then
-            partyCare.DispatchRemedy(careState, memIdx);
-        end
-        imgui.PopStyleColor(3);
-        if imgui.IsItemHovered() then
-            imgui.SetTooltip('Manual cast: ' .. remedyLabel .. '. Uses the configured remedy priority and your current local job/subjob eligibility.');
-        end
-        imgui.SetCursorScreenPos({currentCursorPositionX, currentCursorPositionY});
+        remedyOverlays[partyIndex][memIdx] = {
+            label = remedyLabel,
+            state = careState,
+            x = hpStartX,
+            y = entryStartY + entryHeight + 3,
+            width = allBarsLengths,
+            height = remedyButtonHeight,
+        };
     end
 
     -- Sync indicator
@@ -1222,6 +1258,7 @@ function display.DrawPartyWindow(settings, party, partyIndex)
 
     local scale = data.getScale(partyIndex);
     local iconSize = 0;
+    remedyOverlays[partyIndex] = {};
 
     imgui.PushStyleVar(ImGuiStyleVar_FramePadding, {0,0});
     imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, { settings.barSpacing * scale.x, 0 });
@@ -1333,6 +1370,10 @@ function display.DrawPartyWindow(settings, party, partyIndex)
 
     imgui.End();
     imgui.PopStyleVar(2);
+
+    -- Render manual remedy actions after the native party window so they are
+    -- never hidden behind the card, status-icon, or background draw layers.
+    DrawRemedyOverlays(partyIndex);
 
     -- Handle bottom alignment
     if (settings.alignBottom and imguiPosX ~= nil) then

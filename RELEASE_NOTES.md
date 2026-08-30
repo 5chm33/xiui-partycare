@@ -1,5 +1,21 @@
 # Release Notes
 
+## v0.6.0 — Remedy Action Overlay Correction
+
+This focused correction release replaces the remedy control’s still-clipped in-window placement with a dedicated post-window overlay.
+
+| Area | Included behavior |
+|---|---|
+| Remedy rendering | The red `REMEDY: <spell>` action is now rendered in its own fixed, transparent XIUI overlay window after the PartyList parent window is closed for the frame. |
+| Visibility | The overlay sits above native party-card, status-icon, and background draw layers rather than within their clipped content region. It keeps a dedicated full-width strip below the affected card. |
+| Layout | The PartyList continues reserving the button height, so the remedy strip does not collide with the next party member. |
+| Manual action safety | Clicking the overlay calls the existing remedy dispatcher exactly once; it does not target, retarget, retry, or automatically cast. |
+| Regression coverage | Adds `tests/test_remedy_overlay_layout.lua`, which verifies the top-layer overlay architecture, reserved space, absence of the old inline button, and post-PartyList render order. |
+
+### Verification
+
+All XIUI Lua files parsed successfully. The PartyCare eligibility/action test, Enemy List action test, and remedy-overlay layout contract test passed. The release archive was validated from a clean extraction.
+
 ## v0.5.0 — Remedy Visibility and Manual Current-Target Dispel
 
 This correction release makes the party remedy action unmistakably visible and adds a manual Dispel action to the selected Enemy List card.
