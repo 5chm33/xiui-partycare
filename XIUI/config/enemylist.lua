@@ -44,6 +44,14 @@ local function DrawEnemyCareSettings()
     components.DrawPartyCheckbox(care, 'Show Current-Target Dispel Button##ecDispelButton', 'showDispelButton');
     imgui.ShowHelp('Shows a manual DISPEL button on the already selected Enemy List card. It does not claim a buff was detected; use it when you see or expect a dispellable enemy effect.');
 
+    if care.dispelCueEnabled == nil then care.dispelCueEnabled = true; end
+    components.DrawPartyCheckbox(care, 'Blink Red for Confirmed Enemy Positive Effects##ecDispelCue', 'dispelCueEnabled');
+    imgui.ShowHelp('Blinks an Enemy List card red only after an action packet confirms that enemy gained a positive effect on itself. This is a manual Dispel cue, not an automatic cast and not a guarantee that every observed effect is dispellable.');
+    if care.dispelCueEnabled == true then
+        components.DrawPartySliderInt(care, 'Positive Effect Cue Maximum Seconds##ecDispelCueSeconds', 'dispelCueMaxSeconds', 15, 900, '%d', nil, 300);
+        imgui.ShowHelp('Maximum time to retain a confirmed positive-effect cue when no matching effect-removal packet is observed. Default: 300 seconds.');
+    end
+
     components.DrawPartyCheckbox(care, 'Enable Enemy List Hover Spell Actions##ecHoverEnable', 'hoverActionsEnabled');
     imgui.ShowHelp('A configured click or wheel gesture queues one spell only while hovering the already selected enemy. It never changes your target, selects a new target, or casts automatically.');
     if care.hoverActionsEnabled ~= true then return; end
@@ -60,7 +68,7 @@ local function DrawEnemyCareSettings()
     end
 
     imgui.TextDisabled('Wheel Up defaults to Dia and Wheel Down defaults to Paralyze. All bindings default off except the configured wheel spell choices; enable each binding deliberately.');
-    imgui.TextDisabled('Safety: hover actions and the Dispel button cast only on the existing <t> target. Clicking a different enemy card remains XIUI Click to Target and does not cast a spell.');
+    imgui.TextDisabled('Safety: hover actions and the Dispel button cast only on the existing <t> target. The red positive-effect cue is visual-only. Clicking a different enemy card remains XIUI Click to Target and does not cast a spell.');
 end
 
 -- Section: Enemy List Settings

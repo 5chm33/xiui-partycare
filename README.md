@@ -17,6 +17,7 @@ This is a **separate XIUI 1.8.3 integration build**. It keeps XIUI’s native pa
 | Remedy recommendations | On after feature layer is enabled | Shows only the highest-priority remedy that is eligible for your own current character. |
 | Clickable remedy action | On after feature layer is enabled | Shows a clear full-width red `REMEDY: <spell>` action strip directly beneath the affected XIUI party card. |
 | Current-target Dispel action | On after Enemy List actions are enabled | Shows a blue `DISPEL` action strip on the currently selected XIUI Enemy List card. It is a manual cast control, not an automatic enemy-buff detector. |
+| Confirmed positive-effect cue | On after Enemy List actions are enabled | Pulses a card red after XIUI confirms the enemy gained a known positive effect on itself. It is visual-only and intentionally does not promise every effect is dispellable. |
 | Purple Refresh cue | Off | Purple pulse in the configured final lead time; solid purple when missing. The cue is restored after a completed observed Refresh later expires. |
 | Yellow Haste cue | Off | Yellow pulse in the configured final lead time; solid yellow when missing. |
 | Enemy List offensive hover actions | Off | A fully separate manual offensive layer for XIUI Enemy List cards. Wheel Up defaults to **Dia** and Wheel Down to **Paralyze**; Dia, Blind, Paralyze, Slow, Bind, Gravity, Sleep, Silence, Dispel, elemental enfeebles, and more are selectable. |
@@ -53,7 +54,9 @@ The Enemy List layer is opt-in. Its default spell choices are **Wheel Up = Dia**
 
 When Enemy List actions are enabled, **Show Current-Target Dispel Button** provides a visible blue `DISPEL` strip on the card that is already selected as `<t>`. It is deliberately manual and does not assert that XIUI discovered a positive enemy effect; use it whenever you see or expect a dispellable buff. Disable the toggle if you prefer a completely hover-only enemy list.
 
-> **Current-target safeguard:** Hovering or clicking a different Enemy List card first preserves XIUI Click to Target and does not cast. An enemy-care command—including the blue `DISPEL` button—is constructed only for the already selected card and uses `/ma "Spell" <t>`—there is no automatic retargeting, background retry, or autonomous spell selection.
+**Blink Red for Confirmed Enemy Positive Effects** adds the requested visual cue. It flashes an Enemy List card red only after an incoming completed action packet says that the enemy applied a known positive status effect to itself. The cue clears when a matching effect-removal packet arrives, or after the configured maximum hold time if no removal packet is available. It is intentionally a manual Dispel prompt rather than an automatic action or a guarantee that every confirmed positive effect can be dispelled.
+
+> **Current-target safeguard:** Hovering or clicking a different Enemy List card first preserves XIUI Click to Target and does not cast. An enemy-care command—including the blue `DISPEL` button—is constructed only for the already selected card and uses `/ma "Spell" <t>`—there is no automatic retargeting, background retry, or autonomous spell selection. The flashing red cue is visual-only.
 
 ## Remedy Eligibility and Reliability
 
@@ -73,7 +76,7 @@ This XIUI-native build focuses on manual native-card controls: party-list suppor
 
 ## Validation
 
-The included deterministic regression tests are `tests/test_partycare_integration.lua` and `tests/test_enemylistcare_integration.lua`. Together they cover standard spell eligibility, confirmed/unready spellbook handling, direct status mapping, remedy priority, support mouse-button/wheel dispatches, upkeep priority, cast-bar-independent Refresh observation, interruption handling, post-expiration re-alerting, the separate Enemy List current-target/no-retarget safeguards, manual current-target Dispel dispatch, and a remedy-overlay layout contract that requires the actionable button to render after the native PartyList window ends. All XIUI Lua files and all regression tests passed local validation at package time.
+The included deterministic regression tests are `tests/test_partycare_integration.lua` and `tests/test_enemylistcare_integration.lua`. Together they cover standard spell eligibility, confirmed/unready spellbook handling, direct status mapping, remedy priority, support mouse-button/wheel dispatches, upkeep priority, cast-bar-independent Refresh observation, interruption handling, post-expiration re-alerting, the separate Enemy List current-target/no-retarget safeguards, manual current-target Dispel dispatch, conservative packet-confirmed enemy positive-effect cue creation/clearing, and a remedy-overlay layout contract that requires the actionable button to render after the native PartyList window ends. All XIUI Lua files and all regression tests passed local validation at package time.
 
 ## Rollback
 

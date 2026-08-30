@@ -5,6 +5,7 @@ local imtext = require('libs.imtext');
 local debuffHandler = require('handlers.debuffhandler');
 local actionTracker = require('handlers.actiontracker');
 local enemyCasts = require('handlers.enemycasts');
+local enemyBuffWatch = require('handlers.enemybuffwatch');
 local progressbar = require('libs.progressbar');
 local defaultPositions = require('libs.defaultpositions');
 local enemyCare = require('modules.enemylistcare');
@@ -333,8 +334,9 @@ enemylist.DrawWindow = function(settings)
 					ImDrawCornerFlags_All
 				);
 
-				if (gConfig.showEnemyListBorders) then
-					local borderColor;
+									if (gConfig.showEnemyListBorders) then
+						local borderColor;
+
 					if (subTargetIndex ~= nil and k == subTargetIndex) then
 						-- Subtarget border - use configured color
 						borderColor = imgui.GetColorU32(ARGBToRGBA(gConfig.colorCustomization.enemyList.subtargetBorderColor));
@@ -355,9 +357,36 @@ enemylist.DrawWindow = function(settings)
 						ImDrawCornerFlags_All,
 						borderThickness
 					);
-				end
+									end
 
-				-- ===== CONTENT RENDERING =====
+					-- A visual-only Dispel cue is shown only after the packet watcher
+					-- confirms this enemy applied a positive effect to itself. It is not
+					-- an automatic cast and does not assert every positive effect can be
+					-- dispelled; it simply makes the manual Dispel decision noticeable.
+					local showDispelCue = not isPreviewMode and type(enemyCareConfig) == 'table'
+						and enemyCareConfig.enabled == true and enemyCareConfig.dispelCueEnabled ~= false
+						and ent.ServerId ~= nil;
+					if showDispelCue then
+						local cueActive = enemyBuffWatch.GetRecentPositiveEffect(ent.ServerId, enemyCareConfig.dispelCueMaxSeconds);
+						if cueActive then
+							local cuePeriod = 0.9;
+							local cuePhase = os.clock() % cuePeriod;
+							local cuePulse = (cuePhase / cuePeriod) * 2;
+							if cuePulse > 1 then cuePulse = 2 - cuePulse; end
+							local cueColor = imgui.GetColorU32({1.0, 0.12, 0.12, 0.38 + (cuePulse * 0.62)});
+							drawList:AddRect(
+								{entryStartX - 2, entryStartY - 2},
+								{entryStartX + entryWidth + 2, entryStartY + entryHeight + 2},
+								cueColor,
+								bgRadius + 1,
+								ImDrawCornerFlags_All,
+								math.max(2, 3 * scaleY)
+							);
+						end
+					end
+
+					-- ===== CONTENT RENDERING =====
+
 				-- ROW 1: Enemy Name (colored based on entity type and claim status)
 				local nameX = entryStartX + padding;
 				local nameY = entryStartY + padding;

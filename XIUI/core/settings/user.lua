@@ -328,6 +328,8 @@ function M.createUserSettingsDefaults()
             enabled = false,
             hoverActionsEnabled = false,
             showDispelButton = true,
+            dispelCueEnabled = true,
+            dispelCueMaxSeconds = 300,
             left = T{ enabled = false, spell = 'Blind' },
             right = T{ enabled = false, spell = 'Slow' },
             middle = T{ enabled = false, spell = 'Dia II' },

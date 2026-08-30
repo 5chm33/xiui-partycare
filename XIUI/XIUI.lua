@@ -93,6 +93,7 @@ local debuffHandler = require('handlers.debuffhandler');
 local petBuffHandler = require('handlers.petbuffhandler');
 local actionTracker = require('handlers.actiontracker');
 local enemyCasts = require('handlers.enemycasts');
+local enemyBuffWatch = require('handlers.enemybuffwatch');
 local mobInfo = require('modules.mobinfo.init');
 local statusHandler = require('handlers.statushandler');
 local progressbar = require('libs.progressbar');
@@ -1822,6 +1823,7 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
             if gConfig.showPartyList then partyList.HandleActionPacket(actionPacket); end
             debuffHandler.HandleActionPacket(actionPacket);
             petBuffHandler.HandleActionPacket(actionPacket);
+            enemyBuffWatch.HandleActionPacket(actionPacket);
             actionTracker.HandleActionPacket(actionPacket);
             if gConfig.showNotifications then notifications.HandleActionPacket(actionPacket); end
             -- Skillchain tracking for hotbar/crossbar WS highlighting
@@ -1839,6 +1841,7 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
         treasurePool.HandleZonePacket();
         enemyList.HandleZonePacket(e);
         enemyCasts.HandleZonePacket();
+        enemyBuffWatch.HandleZonePacket();
         partyList.HandleZonePacket(e);
         debuffHandler.HandleZonePacket(e);
         petBuffHandler.HandleZonePacket();
@@ -1860,6 +1863,7 @@ ashita.events.register('packet_in', 'packet_in_cb', function (e)
         if messagePacket then
             debuffHandler.HandleMessagePacket(messagePacket);
             petBuffHandler.HandleMessagePacket(messagePacket);
+            enemyBuffWatch.HandleMessagePacket(messagePacket);
             if enemyCastTrackingEnabled() then enemyCasts.HandleMessagePacket(messagePacket); end
             if gConfig.showNotifications then
                 notifications.HandleMessagePacket(e, messagePacket, 0x0029);

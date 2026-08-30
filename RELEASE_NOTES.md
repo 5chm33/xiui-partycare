@@ -1,5 +1,22 @@
 # Release Notes
 
+## v0.7.0 — Confirmed Enemy Positive-Effect Dispel Cue
+
+This enhancement adds a red visual prompt for manual Dispel decisions while preserving the existing no-automation safety model.
+
+| Area | Included behavior |
+|---|---|
+| Direct evidence only | A new watcher records a cue only when a completed action packet confirms a known positive effect was applied to the enemy actor itself. Cast starts, effects on another target, and explicit non-buff/debuff result IDs are rejected. |
+| Visual cue | The matching XIUI Enemy List card pulses a red outer border. No command is queued, target is changed, or spell is selected automatically. |
+| Cue clearing | Matching effect-removal and death packets clear the cue; an exposed, configurable maximum duration prevents a stale visual prompt if no removal signal reaches XIUI. |
+| Manual Dispel remains manual | The existing blue current-target `DISPEL` button and user-configured hover bindings remain the only ways to cast Dispel. |
+| `/xiui` controls | Under **Enemy List → Manual Offensive Hover Spells**, enable or disable **Blink Red for Confirmed Enemy Positive Effects** and set its maximum cue duration. |
+| Scope honesty | This is a manual “inspect/Dispel” prompt. The underlying packet confirms a positive effect, but the cue intentionally does not guarantee every effect is dispellable. |
+
+### Verification
+
+All XIUI Lua sources passed syntax validation. A new deterministic watcher suite verifies self-target status-on acceptance, cast-start/other-target/non-buff rejection, effect-loss removal, monster-skill confirmation, and zone cleanup. The existing PartyCare, Enemy List action, and remedy-overlay suites also passed. The release archive was validated from a clean extraction.
+
 ## v0.6.0 — Remedy Action Overlay Correction
 
 This focused correction release replaces the remedy control’s still-clipped in-window placement with a dedicated post-window overlay.
