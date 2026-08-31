@@ -65,6 +65,25 @@ assert_equal(watcher.GetRecentPositiveEffect(1002, 300), false, 'cast start must
 assert_equal(watcher.GetRecentPositiveEffect(1003, 300), false, 'other-target effect must not activate cue');
 assert_equal(watcher.GetRecentPositiveEffect(1004, 300), false, 'negative effect must not activate cue');
 
+-- HorizonXI result-message variants can differ, but a direct positive status
+-- icon on a completed enemy self-action remains reliable evidence.
+watcher.HandleActionPacket({
+    UserId = 1006,
+    Type = 11,
+    Param = 888,
+    Targets = {{ Id = 1006, Actions = {{ Message = 999, Param = 93 }} }},
+});
+assert_truthy(watcher.GetRecentPositiveEffect(1006, 300), 'direct positive self effect must not depend on a fixed message ID');
+
+-- Some completed abilities place the gained effect in AdditionalEffect.
+watcher.HandleActionPacket({
+    UserId = 1007,
+    Type = 11,
+    Param = 889,
+    Targets = {{ Id = 1007, Actions = {{ Message = 999, Param = 0, AdditionalEffect = { Message = 999, Param = 40 } }} }},
+});
+assert_truthy(watcher.GetRecentPositiveEffect(1007, 300), 'positive additional effect must activate cue');
+
 -- A matching effect-loss packet clears the cue immediately.
 watcher.HandleMessagePacket({ message = 206, target = 1001, sender = 9999, param = 93 });
 assert_equal(watcher.GetRecentPositiveEffect(1001, 300), false, 'effect-loss packet must clear cue');

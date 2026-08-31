@@ -1,5 +1,21 @@
 # Release Notes
 
+## v0.8.0 — Native Remedy Row Restoration and Expanded Enemy Cue Evidence
+
+This regression-correction release restores the Party List remedy action to XIUI’s stable native input path and expands the conservative direct-effect evidence used by the visual Dispel cue.
+
+| Area | Included behavior |
+|---|---|
+| Remedy action | Removes the separate remedy overlay window and restores the red `REMEDY: <spell>` strip directly inside the existing Party List window, in its reserved row beneath the affected card. |
+| Input reliability | The restored native button follows XIUI's established ImGui window/input path. It remains an explicit single manual remedy dispatch with no targeting, retries, or autonomous casting. |
+| Positive-effect cue | A completed enemy self-action with a known positive status icon now activates the red cue even if HorizonXI supplies an unlisted result message. Confirmed positive statuses in `AdditionalEffect` are also recognized. |
+| Conservative exclusions | Cast starts, effects applied to another target, and direct negative/debuff status IDs remain excluded from the red cue. |
+| Regression coverage | Updates the remedy-layout contract for the native action row and adds direct-message-variant and additional-effect cases to the enemy positive-effect watcher suite. |
+
+### Verification
+
+All XIUI Lua sources parsed successfully. The PartyCare eligibility/action, Enemy List action, enemy positive-effect watcher, and native remedy-row layout tests passed. The release archive was validated from a clean extraction.
+
 ## v0.7.0 — Confirmed Enemy Positive-Effect Dispel Cue
 
 This enhancement adds a red visual prompt for manual Dispel decisions while preserving the existing no-automation safety model.

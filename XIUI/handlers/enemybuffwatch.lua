@@ -72,18 +72,31 @@ function M.HandleActionPacket(actionPacket)
         -- are deliberately ignored.
         if target.Id == actionPacket.UserId then
             for _, action in pairs(target.Actions or {}) do
-                if STATUS_ON_MESSAGES[action.Message] then
-                    local effectId = action.Param;
-                    -- Prefer an explicit result effect ID. Only use the spell
-                    -- lookup when the packet omitted a plausible status field;
-                    -- never reinterpret an explicit non-buff/debuff ID as a
-                    -- positive effect from an unrelated spell mapping.
+                local effectId = action.Param;
+                -- On a completed enemy self-action, a direct positive status
+                -- icon is authoritative regardless of the result-message
+                -- variant used by a HorizonXI server. Restricting this solely
+                -- to a fixed message allow-list missed valid Cocoon/Defense
+                -- Boost-style results on some packet paths.
+                if valid_effect_id(effectId) then
+                    record_effect(actionPacket.UserId, effectId);
+                elseif STATUS_ON_MESSAGES[action.Message] then
+                    -- Only fall back to spell metadata if the packet omitted a
+                    -- plausible effect ID. An explicit non-buff/debuff ID must
+                    -- not be reinterpreted as a positive effect.
                     local numericEffectId = tonumber(effectId);
                     if (numericEffectId == nil or numericEffectId <= 0 or numericEffectId >= 1000)
                         and actionPacket.Type == 4 then
-                        effectId = buffTable.GetBuffIdBySpellId(actionPacket.Param);
+                        record_effect(actionPacket.UserId, buffTable.GetBuffIdBySpellId(actionPacket.Param));
                     end
-                    record_effect(actionPacket.UserId, effectId);
+                end
+
+                -- Some abilities report their gained status as an additional
+                -- result. Treat it identically, but still only for completed
+                -- self-applied actions and known positive status icons.
+                local additional = action.AdditionalEffect;
+                if additional and valid_effect_id(additional.Param) then
+                    record_effect(actionPacket.UserId, additional.Param);
                 end
             end
         end
