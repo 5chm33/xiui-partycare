@@ -70,19 +70,25 @@ function M.HandleActionPacket(actionPacket)
     if actionPacket.Type ~= 4 and actionPacket.Type ~= 11 then return; end
 
     for _, target in pairs(actionPacket.Targets or {}) do
-        -- A completed Dispel result on a previously cued enemy should clear
-        -- immediately. A status-off result with a specific icon removes that
-        -- one effect; a success result without an icon clears the cue set for
-        -- the target rather than leaving a stale manual prompt.
-        if actionPacket.Type == 4 and tonumber(actionPacket.Param) == DISPEL_SPELL_ID then
-            for _, action in pairs(target.Actions or {}) do
-                if STATUS_OFF_MESSAGES[action.Message] then
-                    if valid_effect_id(action.Param) then
-                        remove_effect(target.Id, action.Param);
-                    else
-                        clear_target(target.Id);
-                    end
-                end
+        -- Effect removals can be reported in an action result rather than the
+        -- separate basic-message stream. Honor a specific removed icon from
+        -- *any* actor (including another party member's Dispel), because the
+        -- cue belongs to the affected enemy, not to the player who removed it.
+        -- An iconless removal clears all retained cue state only for a completed
+        -- Dispel result, avoiding a stale prompt without guessing at other
+        -- effects that might still be active.
+        for _, action in pairs(target.Actions or {}) do
+            local removedEffectId = action.Param;
+            if STATUS_OFF_MESSAGES[action.Message] and valid_effect_id(removedEffectId) then
+                remove_effect(target.Id, removedEffectId);
+            elseif actionPacket.Type == 4 and tonumber(actionPacket.Param) == DISPEL_SPELL_ID
+                and STATUS_OFF_MESSAGES[action.Message] then
+                clear_target(target.Id);
+            end
+
+            local additional = action.AdditionalEffect;
+            if additional and STATUS_OFF_MESSAGES[additional.Message] and valid_effect_id(additional.Param) then
+                remove_effect(target.Id, additional.Param);
             end
         end
 
@@ -145,6 +151,12 @@ end
 
 function M.HandleZonePacket()
     activeEffects = {};
+end
+
+-- Removes retained cue state for one Enemy List entry that XIUI has confirmed
+-- is no longer party-claimed. This is visual cleanup only.
+function M.ClearTarget(serverId)
+    clear_target(serverId);
 end
 
 -- Returns true plus the most recently observed effect ID/age for a live cue.

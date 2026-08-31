@@ -1,5 +1,21 @@
 # Release Notes
 
+## v0.10.0 — Dispel Cue Cleanup and Enemy List Deaggro Retirement
+
+This cleanup release removes two stale-state cases confirmed in live testing while preserving the manual-only action model.
+
+| Area | Included behavior |
+|---|---|
+| External Dispel cleanup | A tracked enemy cue now clears when **any player** generates a completed action result that explicitly removes the recorded positive status—not only when the local player uses Dispel. |
+| Iconless local Dispel result | The existing conservative fallback remains: an explicit completed local Dispel removal result without an icon clears the card’s cue set to avoid a stale prompt. |
+| Linked-mob cleanup | A tracked Enemy List card is removed immediately when an authoritative claim update reports that it is yellow/unclaimed or claimed outside the party. |
+| Cue cleanup with card removal | Deaggro retirement also removes retained positive-effect cue state and cached labels for that mob. |
+| Safety | No cleanup path changes targets, sends commands, or automatically casts a spell. |
+
+### Verification
+
+All XIUI Lua sources passed syntax validation. The PartyCare, Enemy List action, positive-effect watcher, remedy visual/layout, and new Enemy List deaggro-retirement test suites passed. The release archive was validated from a clean extraction.
+
 ## v0.9.0 — Visible Remedy Label and Pulsing Manual-Dispel Cue
 
 This visual refinement ensures that the already-working manual action areas are visibly readable in XIUI themes and makes a confirmed enemy positive effect easier to notice without changing targeting or cast safety.

@@ -703,13 +703,25 @@ end
 
 -- if a mob updates its claimid to be us or a party member add it to the list
 enemylist.HandleMobUpdatePacket = function(e)
-	if (e == nil) then
+	if (e == nil or e.monsterIndex == nil or e.newClaimId == nil) then
 		return;
 	end
-	if (e.newClaimId ~= nil and GetIsValidMob(e.monsterIndex)) then
-		-- Use cached party lookup (O(1)) instead of rebuilding party list each packet
-		if IsPartyMemberByServerId(e.newClaimId) then
-			allClaimedTargets[e.monsterIndex] = 1;
+
+	-- The claim update is the authoritative deaggro signal. Retain/add enemies
+	-- claimed by the party, but immediately retire an already tracked card when
+	-- the server says its claim moved elsewhere or became yellow/unclaimed. This
+	-- avoids retaining linked mobs after a wipe while not guessing from distance,
+	-- target history, or a transient render flag.
+	if IsPartyMemberByServerId(e.newClaimId) and GetIsValidMob(e.monsterIndex) then
+		allClaimedTargets[e.monsterIndex] = 1;
+	elseif allClaimedTargets[e.monsterIndex] ~= nil then
+		local entityMgr = GetEntitySafe();
+		local serverId = entityMgr ~= nil and entityMgr:GetServerId(e.monsterIndex) or nil;
+		allClaimedTargets[e.monsterIndex] = nil;
+		truncatedNameCache[e.monsterIndex] = nil;
+		truncatedTargetNameCache[e.monsterIndex] = nil;
+		if serverId ~= nil then
+			enemyBuffWatch.ClearTarget(serverId);
 		end
 	end
 end

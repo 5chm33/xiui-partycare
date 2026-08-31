@@ -110,6 +110,33 @@ watcher.HandleActionPacket({
 });
 assert_equal(watcher.GetRecentPositiveEffect(1001, 300), false, 'iconless successful Dispel result must clear cue');
 
+-- A status-off result from any other player also clears the recorded effect;
+-- the cue belongs to the enemy card, not to the player who dispelled it.
+watcher.HandleActionPacket({
+    UserId = 1010,
+    Type = 11,
+    Param = 777,
+    Targets = {{ Id = 1010, Actions = {{ Message = 230, Param = 40 }} }},
+});
+assert_truthy(watcher.GetRecentPositiveEffect(1010, 300), 'third confirmed effect must re-arm cue');
+watcher.HandleActionPacket({
+    UserId = 4002,
+    Type = 11,
+    Param = 888,
+    Targets = {{ Id = 1010, Actions = {{ Message = 341, Param = 40 }} }},
+});
+assert_equal(watcher.GetRecentPositiveEffect(1010, 300), false, 'another player removal result must clear cue');
+
+-- Explicit Enemy List retirement clears any cue attached to that mob.
+watcher.HandleActionPacket({
+    UserId = 1011,
+    Type = 11,
+    Param = 777,
+    Targets = {{ Id = 1011, Actions = {{ Message = 230, Param = 40 }} }},
+});
+watcher.ClearTarget(1011);
+assert_equal(watcher.GetRecentPositiveEffect(1011, 300), false, 'retired Enemy List target must clear cue');
+
 -- A matching standalone effect-loss packet also clears the cue immediately.
 watcher.HandleMessagePacket({ message = 206, target = 1001, sender = 9999, param = 93 });
 assert_equal(watcher.GetRecentPositiveEffect(1001, 300), false, 'effect-loss packet must leave cue cleared');
