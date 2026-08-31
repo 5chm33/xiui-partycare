@@ -1,5 +1,20 @@
 # Release Notes
 
+## v0.11.0 — Teammate Dispel Cue Cleanup
+
+This targeted correction closes the remaining stale red-cue path reported after a **teammate** dispelled a confirmed enemy positive effect.
+
+| Area | Included behavior |
+|---|---|
+| Cross-player cast results | XIUI now clears the affected Enemy List cue when any completed cast result explicitly reports that the target’s status disappeared, even if the action parameter carries a spell/action value rather than the removed status icon. |
+| Basic message fallback | The matching standard battle-message form also clears the target card when it is delivered separately from the action result. |
+| Scope | This fallback is restricted to explicit cast-removal messages. It does not clear unrelated positive-effect cues merely because another action occurred. |
+| Safety | The change affects only the visual cue cache; it does not target, cast, retry, or modify the manual Dispel button. |
+
+### Verification
+
+All XIUI Lua sources passed syntax validation. The expanded enemy positive-effect watcher suite covers specific icon removal, iconless local Dispel, iconless teammate action results, and iconless teammate basic messages. The full regression suite and clean release archive validation passed.
+
 ## v0.10.0 — Dispel Cue Cleanup and Enemy List Deaggro Retirement
 
 This cleanup release removes two stale-state cases confirmed in live testing while preserving the manual-only action model.

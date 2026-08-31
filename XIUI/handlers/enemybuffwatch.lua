@@ -32,6 +32,15 @@ local STATUS_OFF_MESSAGES = {
     [531] = true, [647] = true, [805] = true, [806] = true,
 };
 local DISPEL_SPELL_ID = 260;
+
+-- Spell/ability result messages that explicitly state a target status vanished.
+-- In live party casts, these can carry an action parameter that is not the
+-- status icon (or no usable icon at all), so they are an authoritative cue to
+-- clear the affected target's manual-Dispel reminder regardless of caster.
+local CAST_STATUS_REMOVAL_MESSAGES = {
+    [341] = true, [342] = true, [647] = true,
+};
+
 local DEATH_MESSAGES = {
     [6] = true, [20] = true, [97] = true, [113] = true, [406] = true, [605] = true, [646] = true,
 };
@@ -79,7 +88,13 @@ function M.HandleActionPacket(actionPacket)
         -- effects that might still be active.
         for _, action in pairs(target.Actions or {}) do
             local removedEffectId = action.Param;
-            if STATUS_OFF_MESSAGES[action.Message] and valid_effect_id(removedEffectId) then
+            if CAST_STATUS_REMOVAL_MESSAGES[action.Message] then
+                -- A completed cast explicitly reports that the target lost a
+                -- status. This covers another party member's Dispel packet even
+                -- when HorizonXI places a spell/action value in Param instead of
+                -- the removed status icon.
+                clear_target(target.Id);
+            elseif STATUS_OFF_MESSAGES[action.Message] and valid_effect_id(removedEffectId) then
                 remove_effect(target.Id, removedEffectId);
             elseif actionPacket.Type == 4 and tonumber(actionPacket.Param) == DISPEL_SPELL_ID
                 and STATUS_OFF_MESSAGES[action.Message] then
@@ -140,7 +155,11 @@ function M.HandleMessagePacket(messagePacket)
         return;
     end
 
-    if STATUS_OFF_MESSAGES[messagePacket.message] and effectId ~= nil then
+    if CAST_STATUS_REMOVAL_MESSAGES[messagePacket.message] then
+        -- The basic battle message names the affected entity as target. Clear
+        -- its retained cue even if this alternate packet omits the status icon.
+        clear_target(targetId);
+    elseif STATUS_OFF_MESSAGES[messagePacket.message] and effectId ~= nil then
         -- Depending on packet flavor, the affected entity may be represented
         -- as target or sender. Clearing both is safe because IDs must match an
         -- effect that this watcher previously confirmed.

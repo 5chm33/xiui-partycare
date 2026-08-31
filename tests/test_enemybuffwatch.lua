@@ -137,6 +137,35 @@ watcher.HandleActionPacket({
 watcher.ClearTarget(1011);
 assert_equal(watcher.GetRecentPositiveEffect(1011, 300), false, 'retired Enemy List target must clear cue');
 
+-- HorizonXI can place a spell/action value (rather than the removed icon) in
+-- another party member's completed Dispel action. Its explicit cast-removal
+-- message still authoritatively clears the enemy cue.
+watcher.HandleActionPacket({
+    UserId = 1012,
+    Type = 11,
+    Param = 777,
+    Targets = {{ Id = 1012, Actions = {{ Message = 230, Param = 40 }} }},
+});
+assert_truthy(watcher.GetRecentPositiveEffect(1012, 300), 'fourth confirmed effect must re-arm cue');
+watcher.HandleActionPacket({
+    UserId = 4003,
+    Type = 4,
+    Param = 9999,
+    Targets = {{ Id = 1012, Actions = {{ Message = 341, Param = 9999 }} }},
+});
+assert_equal(watcher.GetRecentPositiveEffect(1012, 300), false, 'iconless teammate cast-removal action must clear cue');
+
+-- The same cast-removal result can be duplicated only as a basic battle
+-- message. Its target field still identifies the affected enemy correctly.
+watcher.HandleActionPacket({
+    UserId = 1013,
+    Type = 11,
+    Param = 777,
+    Targets = {{ Id = 1013, Actions = {{ Message = 230, Param = 40 }} }},
+});
+watcher.HandleMessagePacket({ message = 342, target = 1013, sender = 4004, param = 0 });
+assert_equal(watcher.GetRecentPositiveEffect(1013, 300), false, 'iconless teammate cast-removal message must clear cue');
+
 -- A matching standalone effect-loss packet also clears the cue immediately.
 watcher.HandleMessagePacket({ message = 206, target = 1001, sender = 9999, param = 93 });
 assert_equal(watcher.GetRecentPositiveEffect(1001, 300), false, 'effect-loss packet must leave cue cleared');
