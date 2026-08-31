@@ -26,9 +26,12 @@ local STATUS_ON_MESSAGES = {
 -- whenever the packet contains its effect icon; a bounded fallback prevents a
 -- stale visual cue when an exact removal packet is unavailable.
 local STATUS_OFF_MESSAGES = {
-    [206] = true, [343] = true, [378] = true,
-    [426] = true, [427] = true,
+    [64] = true, [159] = true, [168] = true, [204] = true, [206] = true,
+    [321] = true, [322] = true, [341] = true, [342] = true, [343] = true,
+    [344] = true, [350] = true, [378] = true, [426] = true, [427] = true,
+    [531] = true, [647] = true, [805] = true, [806] = true,
 };
+local DISPEL_SPELL_ID = 260;
 local DEATH_MESSAGES = {
     [6] = true, [20] = true, [97] = true, [113] = true, [406] = true, [605] = true, [646] = true,
 };
@@ -67,6 +70,22 @@ function M.HandleActionPacket(actionPacket)
     if actionPacket.Type ~= 4 and actionPacket.Type ~= 11 then return; end
 
     for _, target in pairs(actionPacket.Targets or {}) do
+        -- A completed Dispel result on a previously cued enemy should clear
+        -- immediately. A status-off result with a specific icon removes that
+        -- one effect; a success result without an icon clears the cue set for
+        -- the target rather than leaving a stale manual prompt.
+        if actionPacket.Type == 4 and tonumber(actionPacket.Param) == DISPEL_SPELL_ID then
+            for _, action in pairs(target.Actions or {}) do
+                if STATUS_OFF_MESSAGES[action.Message] then
+                    if valid_effect_id(action.Param) then
+                        remove_effect(target.Id, action.Param);
+                    else
+                        clear_target(target.Id);
+                    end
+                end
+            end
+        end
+
         -- A self-applied effect on the actor is the direct evidence that an
         -- enemy card may need a manual Dispel check. Effects on other targets
         -- are deliberately ignored.

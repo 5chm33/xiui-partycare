@@ -320,19 +320,46 @@ enemylist.DrawWindow = function(settings)
 					nameColor = GetEntityNameColor(ent, k, gConfig.colorCustomization.shared);
 				end
 
-				-- Background fill
-				local bgColor = gConfig.colorCustomization.enemyList.backgroundColor;
-				local bgOpacity = gConfig.enemyListBackgroundOpacity;
-				if (bgOpacity ~= nil) then
-					bgColor = ApplyOpacityToColor(bgColor, bgOpacity);
-				end
-				drawList:AddRectFilled(
-					{entryStartX, entryStartY},
-					{entryStartX + entryWidth, entryStartY + entryHeight},
-					imgui.GetColorU32(ARGBToRGBA(bgColor)),
-					bgRadius,
-					ImDrawCornerFlags_All
-				);
+					-- Resolve the visual-only Dispel cue before painting the card so the
+					-- pulse can lightly tint its background rather than only outlining it.
+					local showDispelCue = not isPreviewMode and type(enemyCareConfig) == 'table'
+						and enemyCareConfig.enabled == true and enemyCareConfig.dispelCueEnabled ~= false
+						and ent.ServerId ~= nil;
+					local cueActive = false;
+					local cuePulse = 0;
+					if showDispelCue then
+						cueActive = enemyBuffWatch.GetRecentPositiveEffect(ent.ServerId, enemyCareConfig.dispelCueMaxSeconds);
+						if cueActive then
+							local cuePeriod = 0.9;
+							cuePulse = ((os.clock() % cuePeriod) / cuePeriod) * 2;
+							if cuePulse > 1 then cuePulse = 2 - cuePulse; end
+						end
+					end
+
+					-- Background fill
+					local bgColor = gConfig.colorCustomization.enemyList.backgroundColor;
+					local bgOpacity = gConfig.enemyListBackgroundOpacity;
+					if (bgOpacity ~= nil) then
+						bgColor = ApplyOpacityToColor(bgColor, bgOpacity);
+					end
+					drawList:AddRectFilled(
+						{entryStartX, entryStartY},
+						{entryStartX + entryWidth, entryStartY + entryHeight},
+						imgui.GetColorU32(ARGBToRGBA(bgColor)),
+						bgRadius,
+						ImDrawCornerFlags_All
+					);
+					if cueActive then
+						-- Kept below text and bars; this is only an attention cue for the
+						-- player's explicit manual Dispel decision.
+						drawList:AddRectFilled(
+							{entryStartX, entryStartY},
+							{entryStartX + entryWidth, entryStartY + entryHeight},
+							imgui.GetColorU32({0.96, 0.08, 0.08, 0.14 + (cuePulse * 0.42)}),
+							bgRadius,
+							ImDrawCornerFlags_All
+						);
+					end
 
 									if (gConfig.showEnemyListBorders) then
 						local borderColor;
@@ -359,31 +386,6 @@ enemylist.DrawWindow = function(settings)
 					);
 									end
 
-					-- A visual-only Dispel cue is shown only after the packet watcher
-					-- confirms this enemy applied a positive effect to itself. It is not
-					-- an automatic cast and does not assert every positive effect can be
-					-- dispelled; it simply makes the manual Dispel decision noticeable.
-					local showDispelCue = not isPreviewMode and type(enemyCareConfig) == 'table'
-						and enemyCareConfig.enabled == true and enemyCareConfig.dispelCueEnabled ~= false
-						and ent.ServerId ~= nil;
-					if showDispelCue then
-						local cueActive = enemyBuffWatch.GetRecentPositiveEffect(ent.ServerId, enemyCareConfig.dispelCueMaxSeconds);
-						if cueActive then
-							local cuePeriod = 0.9;
-							local cuePhase = os.clock() % cuePeriod;
-							local cuePulse = (cuePhase / cuePeriod) * 2;
-							if cuePulse > 1 then cuePulse = 2 - cuePulse; end
-							local cueColor = imgui.GetColorU32({1.0, 0.12, 0.12, 0.38 + (cuePulse * 0.62)});
-							drawList:AddRect(
-								{entryStartX - 2, entryStartY - 2},
-								{entryStartX + entryWidth + 2, entryStartY + entryHeight + 2},
-								cueColor,
-								bgRadius + 1,
-								ImDrawCornerFlags_All,
-								math.max(2, 3 * scaleY)
-							);
-						end
-					end
 
 					-- ===== CONTENT RENDERING =====
 

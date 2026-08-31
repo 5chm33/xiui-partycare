@@ -84,9 +84,35 @@ watcher.HandleActionPacket({
 });
 assert_truthy(watcher.GetRecentPositiveEffect(1007, 300), 'positive additional effect must activate cue');
 
--- A matching effect-loss packet clears the cue immediately.
+-- A completed manual Dispel result clears the matching cue immediately.
+watcher.HandleActionPacket({
+    UserId = 4001,
+    Type = 4,
+    Param = 260, -- Dispel
+    Targets = {{ Id = 1001, Actions = {{ Message = 341, Param = 93 }} }},
+});
+assert_equal(watcher.GetRecentPositiveEffect(1001, 300), false, 'successful Dispel result must clear matching cue');
+
+-- A status-off message without an effect icon is still a successful manual
+-- Dispel outcome for the card, so no stale cue should remain.
+watcher.HandleActionPacket({
+    UserId = 1001,
+    Type = 11,
+    Param = 777,
+    Targets = {{ Id = 1001, Actions = {{ Message = 230, Param = 40 }} }},
+});
+assert_truthy(watcher.GetRecentPositiveEffect(1001, 300), 'second confirmed effect must re-arm cue');
+watcher.HandleActionPacket({
+    UserId = 4001,
+    Type = 4,
+    Param = 260, -- Dispel
+    Targets = {{ Id = 1001, Actions = {{ Message = 341, Param = 0 }} }},
+});
+assert_equal(watcher.GetRecentPositiveEffect(1001, 300), false, 'iconless successful Dispel result must clear cue');
+
+-- A matching standalone effect-loss packet also clears the cue immediately.
 watcher.HandleMessagePacket({ message = 206, target = 1001, sender = 9999, param = 93 });
-assert_equal(watcher.GetRecentPositiveEffect(1001, 300), false, 'effect-loss packet must clear cue');
+assert_equal(watcher.GetRecentPositiveEffect(1001, 300), false, 'effect-loss packet must leave cue cleared');
 
 -- Monster-skill positive status-on outcomes are also accepted only when the
 -- effect belongs to the actor itself; zone reset clears all retained evidence.

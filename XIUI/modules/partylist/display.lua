@@ -32,8 +32,26 @@ local lastSavedPosY = { nil, nil, nil };
 
 -- Remedy actions are intentionally rendered directly inside the existing Party
 -- List window. The button has a reserved row beneath its card, which keeps
--- its input in XIUI's established native window path and avoids an additional
--- overlay window losing focus/input on some Ashita builds.
+-- its input in XIUI's established native window path. A final foreground pass
+-- paints the visible strip above XIUI theme backgrounds while leaving click
+-- handling in the stable native Party List window.
+local remedyVisuals = { {}, {}, {} };
+
+local function DrawRemedyVisuals(partyIndex)
+    local visuals = remedyVisuals[partyIndex];
+    if type(visuals) ~= 'table' then return; end
+
+    local drawList = imgui.GetForegroundDrawList();
+    for _, visual in pairs(visuals) do
+        if visual and visual.label then
+            local topLeft = {visual.x, visual.y};
+            local bottomRight = {visual.x + visual.width, visual.y + visual.height};
+            drawList:AddRectFilled(topLeft, bottomRight, imgui.GetColorU32({0.62, 0.08, 0.08, 0.98}), 3, ImDrawCornerFlags_All);
+            drawList:AddRect(topLeft, bottomRight, imgui.GetColorU32({1.00, 0.42, 0.42, 1.00}), 3, ImDrawCornerFlags_All, 1.5);
+            drawList:AddText({visual.x + 6, visual.y + math.max(2, math.floor((visual.height - 14) / 2))}, imgui.GetColorU32({1.00, 1.00, 1.00, 1.00}), 'REMEDY: ' .. visual.label);
+        end
+    end
+end
 
 function display.ResetFont()
     imtext.Reset();
@@ -1104,6 +1122,13 @@ function display.DrawMember(memIdx, settings, isLastVisibleMember)
         if imgui.Button('REMEDY: ' .. remedyLabel .. '##PartyCareRemedy' .. memIdx, {allBarsLengths, remedyButtonHeight}) then
             partyCare.DispatchRemedy(careState, memIdx);
         end
+        remedyVisuals[partyIndex][memIdx] = {
+            x = hpStartX,
+            y = entryStartY + entryHeight + 3,
+            width = allBarsLengths,
+            height = remedyButtonHeight,
+            label = remedyLabel,
+        };
         imgui.PopStyleColor(3);
         if imgui.IsItemHovered() then
             imgui.SetTooltip('Manual cast: ' .. remedyLabel .. '. Uses the configured remedy priority and your current local job/subjob eligibility.');
@@ -1224,6 +1249,7 @@ function display.DrawPartyWindow(settings, party, partyIndex)
 
     local scale = data.getScale(partyIndex);
     local iconSize = 0;
+    remedyVisuals[partyIndex] = {};
     imgui.PushStyleVar(ImGuiStyleVar_FramePadding, {0,0});
     imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, { settings.barSpacing * scale.x, 0 });
     
@@ -1334,6 +1360,11 @@ function display.DrawPartyWindow(settings, party, partyIndex)
 
     imgui.End();
     imgui.PopStyleVar(2);
+
+    -- Draw the red remedy visual last on the foreground list. The matching
+    -- native Party List button was already created above, so this visual pass
+    -- cannot intercept input or change targeting.
+    DrawRemedyVisuals(partyIndex);
 
     -- Handle bottom alignment
     if (settings.alignBottom and imguiPosX ~= nil) then

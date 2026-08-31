@@ -1,5 +1,21 @@
 # Release Notes
 
+## v0.9.0 — Visible Remedy Label and Pulsing Manual-Dispel Cue
+
+This visual refinement ensures that the already-working manual action areas are visibly readable in XIUI themes and makes a confirmed enemy positive effect easier to notice without changing targeting or cast safety.
+
+| Area | Included behavior |
+|---|---|
+| Remedy label visibility | The native Party List remedy button remains the input control, while a final XIUI foreground draw pass paints its red background, border, and `REMEDY: <spell>` text above themed card/background layers. |
+| No new click layer | The foreground paint is visual-only. It cannot block clicks, retarget, or alter the established manual remedy dispatch path. |
+| Enemy visual cue | Replaces the outer red outline with a light, pulsing red background inside the affected Enemy List card. Text, HP bars, and native target borders remain readable on top. |
+| Manual Dispel clearing | A completed Dispel result that reports a status removal clears the matching cue at once. An iconless successful removal result clears the card’s retained cue set to avoid stale prompts. |
+| Manual-only safety | The cue remains a visual reminder. Only the blue `DISPEL` button or a deliberately configured enemy hover binding can send a spell command. |
+
+### Verification
+
+All XIUI Lua sources passed syntax validation. The PartyCare, Enemy List action, enemy positive-effect watcher, and native remedy-row visual/layout suites passed. The release archive was validated from a clean extraction.
+
 ## v0.8.0 — Native Remedy Row Restoration and Expanded Enemy Cue Evidence
 
 This regression-correction release restores the Party List remedy action to XIUI’s stable native input path and expands the conservative direct-effect evidence used by the visual Dispel cue.

@@ -27,6 +27,12 @@ assert_truthy(source:find('imgui.SetCursorScreenPos({hpStartX, entryStartY + ent
     'native remedy action must be anchored below its party card');
 assert_truthy(source:find('bottomSpacing = bottomSpacing + remedyButtonHeight', 1, true) ~= nil,
     'native remedy action must reserve vertical space below its card');
+assert_truthy(source:find('local function DrawRemedyVisuals(partyIndex)', 1, true) ~= nil,
+    'native remedy action must have a final foreground visual pass');
+assert_truthy(source:find('imgui.GetForegroundDrawList()', 1, true) ~= nil,
+    'remedy visual must render above themed card backgrounds');
+assert_truthy(source:find('DrawRemedyVisuals(partyIndex);', 1, true) ~= nil,
+    'foreground remedy visual must be drawn after Party List window completion');
 assert_truthy(source:find('PartyCareRemedyActionOverlay##', 1, true) == nil,
     'unreliable separate remedy overlay window must not be reintroduced');
 assert_truthy(source:find('DrawRemedyOverlays(', 1, true) == nil,
