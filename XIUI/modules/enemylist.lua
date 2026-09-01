@@ -306,13 +306,25 @@ enemylist.DrawWindow = function(settings)
 					totalContentHeight = totalContentHeight + barToInfoGap + castBarHeight
 						+ math.max(2 * scaleY, 1) + castTextHeight;
 				end
-					local entryHeight = (padding * 2) + totalContentHeight;
-					local entryInteractiveHeight = entryHeight;
-					-- XIUI has no authoritative remote positive-enemy-buff feed.  This is
-					-- therefore an explicit manual Dispel control on the currently selected
-					-- enemy, not an automatic "buff detected" claim or recommendation.
-					local showManualDispelButton = not HzLimitedMode and not isPreviewMode and not showConfig[1]
-						and enemyCare.CanShowManualDispel(k, targetIndex, subTargetActive);
+											local entryHeight = (padding * 2) + totalContentHeight;
+						local entryInteractiveHeight = entryHeight;
+
+						-- Resolve the packet-confirmed cue before calculating card height so the
+						-- manual Dispel row exists only for the same live condition that warrants
+						-- a red visual reminder.  XIUI never infers a buff merely to show a button.
+						local showDispelCue = not isPreviewMode and type(enemyCareConfig) == 'table'
+							and enemyCareConfig.enabled == true and enemyCareConfig.dispelCueEnabled ~= false
+							and ent.ServerId ~= nil;
+						local cueActive = false;
+						if showDispelCue then
+							cueActive = enemyBuffWatch.GetRecentPositiveEffect(ent.ServerId, enemyCareConfig.dispelCueMaxSeconds);
+						end
+
+						-- The blue manual Dispel row requires both the current-target safety gate
+						-- and an active packet-confirmed positive-effect cue on this exact enemy.
+						local showManualDispelButton = not HzLimitedMode and not isPreviewMode and not showConfig[1]
+							and cueActive and enemyCare.CanShowManualDispel(k, targetIndex, subTargetActive);
+
 					local dispelButtonGap = showManualDispelButton and math.max(2 * scaleY, 2) or 0;
 					local dispelButtonHeight = showManualDispelButton and math.max(18, nameHeight + 5) or 0;
 					if showManualDispelButton then
@@ -344,21 +356,14 @@ enemylist.DrawWindow = function(settings)
 					nameColor = GetEntityNameColor(ent, k, gConfig.colorCustomization.shared);
 				end
 
-					-- Resolve the visual-only Dispel cue before painting the card so the
-					-- pulse can lightly tint its background rather than only outlining it.
-					local showDispelCue = not isPreviewMode and type(enemyCareConfig) == 'table'
-						and enemyCareConfig.enabled == true and enemyCareConfig.dispelCueEnabled ~= false
-						and ent.ServerId ~= nil;
-					local cueActive = false;
-					local cuePulse = 0;
-					if showDispelCue then
-						cueActive = enemyBuffWatch.GetRecentPositiveEffect(ent.ServerId, enemyCareConfig.dispelCueMaxSeconds);
+						-- The cue state was resolved above before card height was finalized. Use
+						-- it here to tint the card behind its regular text and bars.
+						local cuePulse = 0;
 						if cueActive then
 							local cuePeriod = 0.9;
 							cuePulse = ((os.clock() % cuePeriod) / cuePeriod) * 2;
 							if cuePulse > 1 then cuePulse = 2 - cuePulse; end
 						end
-					end
 
 					-- Background fill
 					local bgColor = gConfig.colorCustomization.enemyList.backgroundColor;

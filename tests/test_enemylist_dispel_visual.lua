@@ -23,9 +23,15 @@ require_fragment('local function DrawDispelVisuals()', 'foreground Dispel painte
 require_fragment('imgui.GetForegroundDrawList()', 'top-layer draw list');
 require_fragment("local label = 'DISPEL';", 'visible Dispel label');
 require_fragment('DrawDispelVisuals();', 'final foreground paint invocation');
+require_fragment('and cueActive and enemyCare.CanShowManualDispel', 'active confirmed cue requirement for the Dispel row');
+require_fragment('local cueActive = false;', 'cue resolved before Dispel row layout');
 
+local cuePos = assert(source:find('local cueActive = false;', 1, true));
 local buttonPos = assert(source:find("imgui.Button('DISPEL##EnemyCareDispel'", 1, true));
 local drawPos = assert(source:find('DrawDispelVisuals();', 1, true));
+if cuePos >= buttonPos then
+    error('The packet-confirmed cue must be resolved before the native Dispel row is created.');
+end
 if drawPos <= buttonPos then
     error('Foreground Dispel paint must occur after the native clickable button is created.');
 end

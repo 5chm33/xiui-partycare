@@ -1,5 +1,20 @@
 # Release Notes
 
+## v0.13.0 — Cue-Gated Manual Dispel Control
+
+This focused usability refinement makes the Enemy List Dispel row match the Party List remedy behavior: it is absent when there is nothing presently flagged for manual attention.
+
+| Area | Included behavior |
+|---|---|
+| Dispel row visibility | The blue `DISPEL` row appears only when the card is both the current `<t>` target and has an active packet-confirmed positive-effect cue. |
+| Clear state | The row disappears as soon as the cue clears through an effect-removal packet, party-origin removal fallback, deaggro retirement, expiry, or a target change. |
+| Manual safety | The row remains a single explicit `/ma "Dispel" <t>` action. The visibility refinement adds no targeting, cast, retry, or autonomous decision behavior. |
+| Regression guard | The Enemy List visual contract now requires cue resolution before row layout and requires the native current-target gate to be combined with the active cue. |
+
+### Verification
+
+All XIUI Lua source files passed syntax validation. The active-cue visibility contract, positive-effect watcher suite, PartyCare suite, Enemy List action suite, remedy-row contract, and deaggro-retirement contract passed. The packaged archive was validated after a clean extraction.
+
 ## v0.12.0 — Visible Enemy Dispel Control and Live Teammate Cleanup
 
 This correction resolves the two live behaviors identified after v0.11.0: a **clickable but visually covered** Enemy List Dispel area, and a red positive-effect cue that remained after a teammate removed the effect through a packet variant outside the earlier narrow completion path.
