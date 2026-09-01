@@ -74,9 +74,13 @@ end
 
 function M.HandleActionPacket(actionPacket)
     if actionPacket == nil or actionPacket.UserId == nil then return; end
-    -- Only completed magic/monster-skill results provide an effect outcome;
-    -- cast-start packets are intentionally ignored to avoid false alerts.
-    if actionPacket.Type ~= 4 and actionPacket.Type ~= 11 then return; end
+    -- Explicit status-removal results are safe to process across action
+    -- categories. HorizonXI can report a teammate Dispel in a different
+    -- completed-action category than the Type-4/11 forms used for positive
+    -- self-effect observation below. Cast starts do not contain a removal
+    -- message and therefore cannot clear a cue through this path.
+    local canObserveSelfPositiveEffect = actionPacket.Type == 4 or actionPacket.Type == 11;
+    local actorIsPartyMember = IsPartyMemberByServerId(actionPacket.UserId) == true;
 
     for _, target in pairs(actionPacket.Targets or {}) do
         -- Effect removals can be reported in an action result rather than the
@@ -96,8 +100,15 @@ function M.HandleActionPacket(actionPacket)
                 clear_target(target.Id);
             elseif STATUS_OFF_MESSAGES[action.Message] and valid_effect_id(removedEffectId) then
                 remove_effect(target.Id, removedEffectId);
-            elseif actionPacket.Type == 4 and tonumber(actionPacket.Param) == DISPEL_SPELL_ID
+            elseif tonumber(actionPacket.Param) == DISPEL_SPELL_ID
                 and STATUS_OFF_MESSAGES[action.Message] then
+                clear_target(target.Id);
+            elseif STATUS_OFF_MESSAGES[action.Message] and actorIsPartyMember
+                and activeEffects[target.Id] ~= nil then
+                -- Some live teammate Dispel results identify an effect-removal
+                -- outcome but place no usable status icon or spell ID in the
+                -- parsed action. The party actor plus target-specific removal
+                -- result is still sufficient to retire this target's reminder.
                 clear_target(target.Id);
             end
 
@@ -110,7 +121,7 @@ function M.HandleActionPacket(actionPacket)
         -- A self-applied effect on the actor is the direct evidence that an
         -- enemy card may need a manual Dispel check. Effects on other targets
         -- are deliberately ignored.
-        if target.Id == actionPacket.UserId then
+        if canObserveSelfPositiveEffect and target.Id == actionPacket.UserId then
             for _, action in pairs(target.Actions or {}) do
                 local effectId = action.Param;
                 -- On a completed enemy self-action, a direct positive status

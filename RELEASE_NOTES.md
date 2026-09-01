@@ -1,5 +1,20 @@
 # Release Notes
 
+## v0.12.0 — Visible Enemy Dispel Control and Live Teammate Cleanup
+
+This correction resolves the two live behaviors identified after v0.11.0: a **clickable but visually covered** Enemy List Dispel area, and a red positive-effect cue that remained after a teammate removed the effect through a packet variant outside the earlier narrow completion path.
+
+| Area | Included behavior |
+|---|---|
+| Enemy List Dispel button | The stable native XIUI `DISPEL` click area is retained. A final foreground draw pass now paints its blue background, border, and label above themed card and child-window layers, making the button visibly readable without changing its input or target safety. |
+| Teammate cleanup | A status-removal result from a current party member now clears the cued **target enemy** even if HorizonXI omits a usable effect icon/spell ID or uses a different completed-action category. |
+| Scope guard | The broader fallback requires both a party-origin action and an explicit status-removal message on an enemy that currently has a confirmed positive-effect cue. Unrelated enemy actions do not clear it. |
+| Safety | The change is visual-state cleanup only. The feature remains an explicit player decision: it never targets, casts, retries, or automatically recommends a Dispel spell. |
+
+### Verification
+
+All XIUI Lua source files passed syntax validation. Regression coverage verifies the foreground `DISPEL` painter remains later than its native input button, as well as icon-specific, iconless cast-message, basic-message, and party-origin cross-category removal clearing. The full suite and clean release archive validation passed.
+
 ## v0.11.0 — Teammate Dispel Cue Cleanup
 
 This targeted correction closes the remaining stale red-cue path reported after a **teammate** dispelled a confirmed enemy positive effect.

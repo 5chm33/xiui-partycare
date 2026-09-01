@@ -3,6 +3,12 @@
 
 package.path = './XIUI/?.lua;./XIUI/?/init.lua;' .. package.path;
 package.preload['common'] = function() end;
+-- The production helper recognizes the local player and all current party
+-- members. The test treats IDs in the 4000 range as teammate casters.
+function IsPartyMemberByServerId(serverId)
+    return type(serverId) == 'number' and serverId >= 4000 and serverId < 5000;
+end
+
 package.preload['libs.bufftable'] = function()
     return {
         IsBuff = function(effectId)
@@ -165,6 +171,24 @@ watcher.HandleActionPacket({
 });
 watcher.HandleMessagePacket({ message = 342, target = 1013, sender = 4004, param = 0 });
 assert_equal(watcher.GetRecentPositiveEffect(1013, 300), false, 'iconless teammate cast-removal message must clear cue');
+
+-- A live HorizonXI teammate result can use an otherwise unlisted completed
+-- action category and a generic status-off message with no usable icon. The
+-- source party actor and affected cued enemy keep this fallback target-safe.
+watcher.HandleActionPacket({
+    UserId = 1014,
+    Type = 11,
+    Param = 777,
+    Targets = {{ Id = 1014, Actions = {{ Message = 230, Param = 40 }} }},
+});
+assert_truthy(watcher.GetRecentPositiveEffect(1014, 300), 'fifth confirmed effect must re-arm cue');
+watcher.HandleActionPacket({
+    UserId = 4005,
+    Type = 3,
+    Param = 0,
+    Targets = {{ Id = 1014, Actions = {{ Message = 343, Param = 0 }} }},
+});
+assert_equal(watcher.GetRecentPositiveEffect(1014, 300), false, 'party iconless status-off result must clear cue');
 
 -- A matching standalone effect-loss packet also clears the cue immediately.
 watcher.HandleMessagePacket({ message = 206, target = 1001, sender = 9999, param = 93 });

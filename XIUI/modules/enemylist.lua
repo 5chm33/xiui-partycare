@@ -75,6 +75,27 @@ local previewCasts = {
 local truncatedNameCache = {};
 local truncatedTargetNameCache = {};
 
+-- The native Dispel button retains XIUI's stable in-window input path.  Its
+-- matching foreground visual is painted after the Enemy List window closes so
+-- themed card backgrounds and child windows cannot hide the label.
+local dispelVisuals = {};
+
+local function DrawDispelVisuals()
+	local drawList = imgui.GetForegroundDrawList();
+	for _, visual in pairs(dispelVisuals) do
+		if visual then
+			local topLeft = {visual.x, visual.y};
+			local bottomRight = {visual.x + visual.width, visual.y + visual.height};
+			drawList:AddRectFilled(topLeft, bottomRight, imgui.GetColorU32({0.10, 0.28, 0.58, 0.98}), 3, ImDrawCornerFlags_All);
+			drawList:AddRect(topLeft, bottomRight, imgui.GetColorU32({0.45, 0.78, 1.00, 1.00}), 3, ImDrawCornerFlags_All, 1.5);
+			local label = 'DISPEL';
+			local textX = visual.x + math.max(6, math.floor((visual.width - #label * 7) / 2));
+			local textY = visual.y + math.max(2, math.floor((visual.height - 14) / 2));
+			drawList:AddText({textX, textY}, imgui.GetColorU32({1.00, 1.00, 1.00, 1.00}), label);
+		end
+	end
+end
+
 -- Check if mob is valid and rendered (accepts optional cached entity manager)
 local function GetIsValidMob(mobIdx, cachedEntityMgr)
 	-- Use cached entity manager if provided, otherwise fetch it
@@ -123,7 +144,10 @@ end
 
 enemylist.DrawWindow = function(settings)
 
-	-- Multi-column layout settings
+	-- Clear only this frame's foreground visual records before entries are laid out.
+	dispelVisuals = {};
+
+		-- Multi-column layout settings
 	local rowsPerColumn = gConfig.enemyListRowsPerColumn or 8;
 	local maxColumns = gConfig.enemyListMaxColumns or 1;
 	local maxTotalEntries = rowsPerColumn * maxColumns;
@@ -496,10 +520,16 @@ enemylist.DrawWindow = function(settings)
 							enemyCare.DispatchManualSpell('Dispel', k, targetIndex, subTargetActive);
 						end
 						imgui.PopStyleColor(3);
-						if imgui.IsItemHovered() then
-							imgui.SetTooltip('Manual cast: Dispel on the current <t> target. This button does not assert that a buff was detected.');
+							if imgui.IsItemHovered() then
+								imgui.SetTooltip('Manual cast: Dispel on the current <t> target. This button does not assert that a buff was detected.');
+							end
+							dispelVisuals[k] = {
+								x = barX,
+								y = dispelButtonY,
+								width = barWidth,
+								height = dispelButtonHeight,
+							};
 						end
-					end
 
 					-- ===== DEBUFF ICONS =====
 
@@ -681,9 +711,13 @@ enemylist.DrawWindow = function(settings)
 	end
 
 	-- Restore ImGui style variables (must be before End() to avoid affecting other windows)
-	imgui.PopStyleVar(3);
-	imgui.End();
-end
+		imgui.PopStyleVar(3);
+		imgui.End();
+
+		-- This foreground pass is visual only. The original native Button above
+		-- owns input, so drawing it last cannot intercept clicks or retarget.
+		DrawDispelVisuals();
+	end
 
 -- If a mob performs an action on us or a party member add it to the list
 enemylist.HandleActionPacket = function(e)
