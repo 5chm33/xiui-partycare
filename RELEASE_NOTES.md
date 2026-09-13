@@ -1,5 +1,20 @@
 # Release Notes
 
+## v0.14.0 — Party List Position Persistence
+
+This correction fixes Party List windows retaining a moved coordinate only in memory. Each Party List window now writes its final position to the active XIUI profile when the user releases a drag, rather than continuously during movement.
+
+| Area | Included behavior |
+|---|---|
+| Per-list position persistence | **Party List**, **Party List 2**, and **Party List 3** retain independent positions through party-composition changes, zoning, XIUI reloads, and later sessions. |
+| Drag-release save | The final coordinate is captured before mouse release and triggers one profile save, avoiding per-frame disk writes while the list is moving. |
+| Scope | Only Party List windows opt into this new persistence behavior; other XIUI window modules retain their existing save behavior. |
+| Regression guard | A deterministic test verifies final-coordinate capture, exactly one persistence call after a drag ends, no repeated save afterward, and Party List renderer opt-in. |
+
+### Verification
+
+All XIUI Lua sources passed syntax validation. The complete PartyCare, Enemy List, enemy positive-effect, remedy-row, deaggro-retirement, Dispel visual, and Party List position-persistence suites passed.
+
 ## v0.13.0 — Cue-Gated Manual Dispel Control
 
 This focused usability refinement makes the Enemy List Dispel row match the Party List remedy behavior: it is absent when there is nothing presently flagged for manual attention.

@@ -1256,7 +1256,10 @@ function display.DrawPartyWindow(settings, party, partyIndex)
     local positionJustApplied = ApplyWindowPosition(windowName);
     
     if (imgui.Begin(windowName, true, windowFlags)) then
-        SaveWindowPosition(windowName);
+        -- Party List positions must survive composition changes and reloads.
+        -- Persist once after a completed drag rather than only retaining the
+        -- coordinate in the in-memory profile table.
+        SaveWindowPosition(windowName, true);
         imguiPosX, imguiPosY = imgui.GetWindowPos();
 
         -- Draw background + borders FIRST so they sit beneath member content on the draw list.

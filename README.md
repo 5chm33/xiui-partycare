@@ -46,6 +46,10 @@ Open `/xiui`, navigate to **Party List**, and expand **PartyCare / Manual Care F
 | **Remedy Priority Rules** | Enables/disables individual direct-effect remedy rules and adjusts their priority. |
 | **Enemy List → Manual Offensive Hover Spells** | Independent left/right/middle/Mouse 4/Mouse 5/wheel bindings for offensive and enfeebling spells, plus an optional blue `DISPEL` action strip for the already selected card. No action changes targets. |
 
+## Party List position persistence
+
+Party List windows now save their individual positions when you release a drag. This applies independently to **Party List**, **Party List 2**, and **Party List 3**, so each position survives party-composition changes, zoning, XIUI reloads, and the next game session. XIUI writes one profile update after the drag completes rather than continuously while you are moving a list.
+
 ## Separate Enemy-List Offensive Actions
 
 Open `/xiui`, select **Enemy List**, and expand **Manual Offensive Hover Spells**. This section is completely separate from the Party List support bindings, so the same mouse/wheel control can safely mean a cure, buff, or remedy over a party member and an offensive spell over the enemy currently selected in the Enemy List.
@@ -80,7 +84,7 @@ This XIUI-native build focuses on manual native-card controls: party-list suppor
 
 ## Validation
 
-The included deterministic regression tests are `tests/test_partycare_integration.lua` and `tests/test_enemylistcare_integration.lua`. Together they cover standard spell eligibility, confirmed/unready spellbook handling, direct status mapping, remedy priority, support mouse-button/wheel dispatches, upkeep priority, cast-bar-independent Refresh observation, interruption handling, post-expiration re-alerting, the separate Enemy List current-target/no-retarget safeguards, manual current-target Dispel dispatch with final foreground visual rendering and active-cue visibility gating, conservative packet-confirmed enemy positive-effect cue creation/clearing including party-origin iconless cross-category removal results, Enemy List deaggro retirement after authoritative claim changes, and a native-remedy-row layout contract that requires the actionable button to remain in XIUI's Party List input window with reserved space and a final foreground visual pass. All XIUI Lua files and all regression tests passed local validation at package time.
+The included deterministic regression tests include `tests/test_partycare_integration.lua`, `tests/test_enemylistcare_integration.lua`, and `tests/test_partylist_position_persistence.lua`. Together they cover standard spell eligibility, confirmed/unready spellbook handling, direct status mapping, remedy priority, support mouse-button/wheel dispatches, upkeep priority, cast-bar-independent Refresh observation, interruption handling, post-expiration re-alerting, the separate Enemy List current-target/no-retarget safeguards, manual current-target Dispel dispatch with final foreground visual rendering and active-cue visibility gating, conservative packet-confirmed enemy positive-effect cue creation/clearing including party-origin iconless cross-category removal results, Enemy List deaggro retirement after authoritative claim changes, drag-release Party List profile persistence without per-frame disk writes, and a native-remedy-row layout contract that requires the actionable button to remain in XIUI's Party List input window with reserved space and a final foreground visual pass. All XIUI Lua files and all regression tests passed local validation at package time.
 
 ## Rollback
 

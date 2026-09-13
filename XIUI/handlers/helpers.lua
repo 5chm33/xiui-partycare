@@ -55,10 +55,13 @@ function ApplyWindowPosition(windowName)
 end
 
 -- Save Window Position Helper
--- Captures the current window position and updates the profile settings
--- Must be called AFTER imgui.Begin()
-function SaveWindowPosition(windowName)
-    if (not gConfig) then return; end
+-- Captures the current window position and updates the profile settings.
+-- When persistOnRelease is true, writes one profile update after a drag ends;
+-- this avoids losing Party List moves while also avoiding per-frame disk writes.
+-- Must be called AFTER imgui.Begin().
+local pendingPositionPersistence = {};
+function SaveWindowPosition(windowName, persistOnRelease)
+    if (not gConfig) then return false; end
     
     local x, y = imgui.GetWindowPos();
     
@@ -66,16 +69,37 @@ function SaveWindowPosition(windowName)
     if (not gConfig.windowPositions) then gConfig.windowPositions = {}; end
     
     local saved = gConfig.windowPositions[windowName];
+    local changed = false;
     
     -- Update only if changed (to reduce table churn)
     if (not saved) then
         gConfig.windowPositions[windowName] = { x = x, y = y };
+        changed = true;
         -- print('[XIUI] Saved NEW position for ' .. windowName .. ': ' .. x .. ',' .. y);
     elseif (saved.x ~= x or saved.y ~= y) then
         saved.x = x;
         saved.y = y;
+        changed = true;
         -- print('[XIUI] Updated position for ' .. windowName .. ': ' .. x .. ',' .. y);
     end
+
+    if (persistOnRelease and changed) then
+        pendingPositionPersistence[windowName] = true;
+    end
+
+    -- Persist exactly once after the user releases a Party List drag. `IsMouseDown`
+    -- is intentionally checked after the current position was sampled so the final
+    -- release frame includes the completed drag coordinate.
+    if (persistOnRelease and pendingPositionPersistence[windowName] and not imgui.IsMouseDown(0)) then
+        pendingPositionPersistence[windowName] = nil;
+        if (type(SaveSettingsToDisk) == 'function') then
+            SaveSettingsToDisk();
+        elseif (type(SaveSettingsOnly) == 'function') then
+            SaveSettingsOnly();
+        end
+    end
+
+    return changed;
 end
 
 -- Returns true when any part of the rect overlaps the viewport.
