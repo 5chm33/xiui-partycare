@@ -21,6 +21,7 @@ _G.bit = {
 local queuedCommands = {};
 local learned = {};
 local spellDataReady = true;
+local dilationRingEquipped = false;
 
 local player = {
     GetMainJob = function() return 5; end,
@@ -37,11 +38,33 @@ local chat = {
     end,
 };
 
+local inventory = {
+    GetEquippedItem = function(_, slot)
+        if dilationRingEquipped and slot == 13 then return { Index = 1 }; end
+        return { Index = 0 };
+    end,
+    GetContainerItem = function(_, container, index)
+        if dilationRingEquipped and container == 0 and index == 1 then return { Id = 9999 }; end
+        return nil;
+    end,
+};
+
+local resources = {
+    GetItemById = function(_, itemId)
+        if itemId == 9999 then return { Name = { [1] = 'Dilation Ring' } }; end
+        return nil;
+    end,
+};
+
 _G.AshitaCore = {
     GetMemoryManager = function()
-        return { GetPlayer = function() return player; end };
+        return {
+            GetPlayer = function() return player; end,
+            GetInventory = function() return inventory; end,
+        };
     end,
     GetChatManager = function() return chat; end,
+    GetResourceManager = function() return resources; end,
 };
 
 local care = require('modules.partylist.partycare');
@@ -76,6 +99,7 @@ local function base_config()
             hasteEarlyEnabled = true,
             hasteDurationSeconds = 180,
             hasteEarlySeconds = 15,
+            dilationRingAutoAdjust = true,
             remedies = deepcopy(care._test.default_remedies),
         },
     };
@@ -182,6 +206,41 @@ care.ObserveStartedSpell(900, 109, 101, 100);
 care.ObserveSpellResult(900, true, 102);
 state = care.GetMemberState(member, 0, 120);
 assert_equal(state.alertKind, 'refresh_missing', 'an interrupted Refresh must not suppress the missing cue');
+
+-- HorizonXI's equipped Dilation Ring extends local Refresh/Haste applications
+-- by 30 seconds.  The modifier is captured at spell start, avoiding an early
+-- pulse while keeping the current base-duration sliders meaningful.
+dilationRingEquipped = true;
+member.buffs = { [1] = 43, [2] = 33, [3] = 255 };
+care.Reset();
+care.ObserveStartedSpell(900, 109, 101, 100);
+care.ObserveSpellResult(900, false, 102);
+state = care.GetMemberState(member, 0, 252);
+assert_equal(state.alertKind, nil, 'Dilation Ring Refresh must not pulse at the unmodified final-15-second boundary');
+state = care.GetMemberState(member, 0, 267);
+assert_equal(state.alertKind, 'refresh_expiring', 'Dilation Ring Refresh must pulse during the final 15 seconds of its extended duration');
+
+_G.gConfig.partyCare.refreshPulseEnabled = false;
+member.buffs = { [1] = 33, [2] = 255 };
+care.Reset();
+care.ObserveStartedSpell(900, 57, 101, 100);
+care.ObserveSpellResult(900, false, 102);
+state = care.GetMemberState(member, 0, 267);
+assert_equal(state.alertKind, nil, 'Dilation Ring Haste must not pulse at the unmodified final-15-second boundary');
+state = care.GetMemberState(member, 0, 297);
+assert_equal(state.alertKind, 'haste_expiring', 'Dilation Ring Haste must pulse during the final 15 seconds of its extended duration');
+
+-- The check box remains a deterministic opt-out for unusual duration setups.
+_G.gConfig.partyCare.refreshPulseEnabled = true;
+_G.gConfig.partyCare.dilationRingAutoAdjust = false;
+member.buffs = { [1] = 43, [2] = 33, [3] = 255 };
+care.Reset();
+care.ObserveStartedSpell(900, 109, 101, 100);
+care.ObserveSpellResult(900, false, 102);
+state = care.GetMemberState(member, 0, 240);
+assert_equal(state.alertKind, 'refresh_expiring', 'disabled Dilation adjustment must use the configured base Refresh duration');
+dilationRingEquipped = false;
+_G.gConfig.partyCare.dilationRingAutoAdjust = true;
 
 -- With no Refresh cue eligible, Haste appears as the lower-priority yellow cue
 -- and follows the same early-pulse behavior while its positive icon is present.

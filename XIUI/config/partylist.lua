@@ -96,7 +96,7 @@ local function DrawPartyCareSettings()
             imgui.ShowHelp('Only members at or above this maximum MP value can receive a Refresh cue. Refresh takes visual priority over Haste.');
             components.DrawPartyCheckbox(care, 'Pulse Before Observed Refresh Expires##pcRefreshEarlyEnable', 'refreshEarlyEnabled');
             if care.refreshEarlyEnabled ~= false then
-                components.DrawPartySliderInt(care, 'Observed Refresh Duration (seconds)##pcRefreshDuration', 'refreshDurationSeconds', 30, 900, '%d', nil, 150);
+                components.DrawPartySliderInt(care, 'Standard Refresh Duration (seconds)##pcRefreshDuration', 'refreshDurationSeconds', 30, 900, '%d', nil, 150);
                 components.DrawPartySliderInt(care, 'Refresh Early Lead (seconds)##pcRefreshLead', 'refreshEarlySeconds', 1, math.max(1, (care.refreshDurationSeconds or 150) - 1), '%d', nil, 15);
             end
         end
@@ -105,11 +105,13 @@ local function DrawPartyCareSettings()
         if care.hastePulseEnabled == true then
             components.DrawPartyCheckbox(care, 'Pulse Before Observed Haste Expires##pcHasteEarlyEnable', 'hasteEarlyEnabled');
             if care.hasteEarlyEnabled ~= false then
-                components.DrawPartySliderInt(care, 'Observed Haste Duration (seconds)##pcHasteDuration', 'hasteDurationSeconds', 30, 900, '%d', nil, 180);
+                components.DrawPartySliderInt(care, 'Standard Haste Duration (seconds)##pcHasteDuration', 'hasteDurationSeconds', 30, 900, '%d', nil, 180);
                 components.DrawPartySliderInt(care, 'Haste Early Lead (seconds)##pcHasteLead', 'hasteEarlySeconds', 1, math.max(1, (care.hasteDurationSeconds or 180) - 1), '%d', nil, 15);
             end
         end
-        imgui.TextDisabled('Red remedy alert > purple Refresh > yellow Haste. A visible positive status icon clears its cue; observed local casts supply the early-warning timer.');
+        components.DrawPartyCheckbox(care, 'Auto-adjust for equipped Dilation Ring (+30s)##pcDilationRing', 'dilationRingAutoAdjust');
+        imgui.ShowHelp('When Dilation Ring is equipped as your local Refresh or Haste begins, PartyCare adds HorizonXI’s +30-second ally duration to that observed cast. Leave this on unless you deliberately want the base-duration timer. Party status icons report active buffs, but not their remaining seconds.');
+        imgui.TextDisabled('Red remedy alert > purple Refresh > yellow Haste. Positive icons clear missing cues; locally observed casts supply early timing.');
     end
 
     if components.CollapsingSection('Remedy Priority Rules##partyCarePriority', false) then

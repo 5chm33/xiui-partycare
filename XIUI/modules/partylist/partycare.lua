@@ -19,6 +19,13 @@ local JOB_SCHOLAR = 20;
 local REFRESH_STATUS_ID = 43;
 local HASTE_STATUS_ID = 33;
 
+-- HorizonXI custom equipment. The Dilation Ring adds 30 seconds to Refresh
+-- and Haste applied while it is equipped, so the early-cue timer must capture
+-- that modifier when the local cast begins instead of assuming a universal
+-- base duration.
+local DILATION_RING_NAME = 'Dilation Ring';
+local DILATION_RING_DURATION_BONUS = 30;
+
 -- These standard spells have stable resource ids and audited effective level
 -- requirements.  The local spellbook remains authoritative whenever it is ready.
 local STANDARD_SPELLS = {
@@ -94,6 +101,7 @@ local DEFAULT_SETTINGS = {
     hasteEarlyEnabled = true,
     hasteDurationSeconds = 180,
     hasteEarlySeconds = 15,
+    dilationRingAutoAdjust = true,
     remedies = DEFAULT_REMEDIES,
 };
 
@@ -110,6 +118,13 @@ local function safe_call(object, method, ...)
         if type(fn) ~= 'function' then return nil; end
         return fn(object, unpack_args(args, 1, count));
     end);
+    if ok then return result; end
+    return nil;
+end
+
+local function safe_field(object, key)
+    if object == nil then return nil; end
+    local ok, result = pcall(function() return object[key]; end);
     if ok then return result; end
     return nil;
 end
@@ -192,6 +207,45 @@ local function get_settings()
         return gConfig.partyCare;
     end
     return DEFAULT_SETTINGS;
+end
+
+-- XIUI's party status feed exposes whether Refresh/Haste is active, but not
+-- its remaining duration. This check runs only when the local player starts
+-- one of those spells, so it can safely inspect the equipped gear once and
+-- record HorizonXI's known Dilation Ring modifier with that specific cast.
+local function is_dilation_ring_equipped()
+    if AshitaCore == nil or bit == nil or type(bit.band) ~= 'function' or type(bit.rshift) ~= 'function' then return false; end
+    local memory = safe_call(AshitaCore, 'GetMemoryManager');
+    local inventory = safe_call(memory, 'GetInventory');
+    local resources = safe_call(AshitaCore, 'GetResourceManager');
+    if inventory == nil or resources == nil then return false; end
+
+    for slot = 0, 15 do
+        local equipped = safe_call(inventory, 'GetEquippedItem', slot);
+        local packedIndex = tonumber(safe_field(equipped, 'Index'));
+        if packedIndex ~= nil then
+            local index = bit.band(packedIndex, 0x00FF);
+            if index > 0 then
+                local container = bit.rshift(bit.band(packedIndex, 0xFF00), 8);
+                local item = safe_call(inventory, 'GetContainerItem', container, index);
+                local itemId = tonumber(safe_field(item, 'Id'));
+                if itemId ~= nil and itemId > 0 and itemId ~= 65535 then
+                    local itemResource = safe_call(resources, 'GetItemById', itemId);
+                    local names = safe_field(itemResource, 'Name');
+                    if safe_field(names, 1) == DILATION_RING_NAME then return true; end
+                end
+            end
+        end
+    end
+    return false;
+end
+
+local function get_upkeep_duration_adjustment(spellId)
+    if tonumber(spellId) ~= STANDARD_SPELLS.Refresh.id and tonumber(spellId) ~= STANDARD_SPELLS.Haste.id then return 0; end
+    local settings = get_settings();
+    if settings.dilationRingAutoAdjust == false then return 0; end
+    if is_dilation_ring_equipped() then return DILATION_RING_DURATION_BONUS; end
+    return 0;
 end
 
 local function get_statuses(buffs)
@@ -455,7 +509,12 @@ function partyCare.ObserveStartedSpell(casterServerId, spellId, targetServerId, 
     local casterId = tonumber(casterServerId);
     local targetId = tonumber(targetServerId);
     if casterId == nil or casterId <= 0 or targetId == nil or targetId <= 0 then return; end
-    pendingUpkeepCasts[casterId] = { spellId = tonumber(spellId), targetServerId = targetId, startedAt = now or os.clock() };
+    pendingUpkeepCasts[casterId] = {
+        spellId = tonumber(spellId),
+        targetServerId = targetId,
+        startedAt = now or os.clock(),
+        durationAdjustment = get_upkeep_duration_adjustment(spellId),
+    };
 end
 
 -- Resolve or cancel the matching locally-observed cast.  Only a non-interrupted
@@ -466,22 +525,23 @@ function partyCare.ObserveSpellResult(casterServerId, interrupted, now)
     if pending == nil then return; end
     pendingUpkeepCasts[casterId] = nil;
     if interrupted then return; end
-    partyCare.ObserveCompletedSpell(pending.spellId, pending.targetServerId, now or os.clock());
+    partyCare.ObserveCompletedSpell(pending.spellId, pending.targetServerId, now or os.clock(), pending.durationAdjustment);
 end
 
 -- Called only when a complete, non-interrupted Refresh/Haste action has been
 -- observed by XIUI's existing packet path.  Positive status icons subsequently
 -- override these timers when available.
-function partyCare.ObserveCompletedSpell(spellId, targetServerId, now)
+function partyCare.ObserveCompletedSpell(spellId, targetServerId, now, durationAdjustment)
     local serverId = tonumber(targetServerId);
     if serverId == nil or serverId <= 0 then return; end
     local settings = get_settings();
     now = now or os.clock();
+    local adjustment = math.max(0, tonumber(durationAdjustment) or 0);
     local upkeep = observedUpkeep[serverId] or {};
     if tonumber(spellId) == STANDARD_SPELLS.Refresh.id then
-        upkeep.refresh = { startedAt = now, duration = tonumber(settings.refreshDurationSeconds) or 150 };
+        upkeep.refresh = { startedAt = now, duration = (tonumber(settings.refreshDurationSeconds) or 150) + adjustment };
     elseif tonumber(spellId) == STANDARD_SPELLS.Haste.id then
-        upkeep.haste = { startedAt = now, duration = tonumber(settings.hasteDurationSeconds) or 180 };
+        upkeep.haste = { startedAt = now, duration = (tonumber(settings.hasteDurationSeconds) or 180) + adjustment };
     else
         return;
     end

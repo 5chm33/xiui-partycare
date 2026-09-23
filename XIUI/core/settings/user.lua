@@ -509,6 +509,10 @@ function M.createUserSettingsDefaults()
             hasteEarlyEnabled = true,
             hasteDurationSeconds = 180,
             hasteEarlySeconds = 15,
+            -- HorizonXI's Dilation Ring adds 30 seconds to local Refresh/Haste
+            -- casts. Capture the equipped-ring modifier when a cast starts so
+            -- the early visual cue does not fire too soon.
+            dilationRingAutoAdjust = true,
             remedies = T{
                 paralyze = T{ spell = 'Paralyna', enabled = true, priority = 100 },
                 doom = T{ spell = 'Cursna', enabled = true, priority = 97 },
