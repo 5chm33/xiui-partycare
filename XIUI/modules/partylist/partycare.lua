@@ -24,6 +24,7 @@ local HASTE_STATUS_ID = 33;
 -- that modifier when the local cast begins instead of assuming a universal
 -- base duration.
 local DILATION_RING_NAME = 'Dilation Ring';
+local DILATION_RING_KEY = 'dilationring';
 local DILATION_RING_DURATION_BONUS = 30;
 
 -- These standard spells have stable resource ids and audited effective level
@@ -102,6 +103,7 @@ local DEFAULT_SETTINGS = {
     hasteDurationSeconds = 180,
     hasteEarlySeconds = 15,
     dilationRingAutoAdjust = true,
+    dilationRingForceAdjust = false,
     remedies = DEFAULT_REMEDIES,
 };
 
@@ -213,6 +215,11 @@ end
 -- its remaining duration. This check runs only when the local player starts
 -- one of those spells, so it can safely inspect the equipped gear once and
 -- record HorizonXI's known Dilation Ring modifier with that specific cast.
+local function item_name_key(value)
+    if type(value) ~= 'string' then return nil; end
+    return value:lower():gsub('[^%a%d]', '');
+end
+
 local function is_dilation_ring_equipped()
     if AshitaCore == nil or bit == nil or type(bit.band) ~= 'function' or type(bit.rshift) ~= 'function' then return false; end
     local memory = safe_call(AshitaCore, 'GetMemoryManager');
@@ -232,7 +239,8 @@ local function is_dilation_ring_equipped()
                 if itemId ~= nil and itemId > 0 and itemId ~= 65535 then
                     local itemResource = safe_call(resources, 'GetItemById', itemId);
                     local names = safe_field(itemResource, 'Name');
-                    if safe_field(names, 1) == DILATION_RING_NAME then return true; end
+                    local itemName = safe_field(names, 1);
+                    if itemName == DILATION_RING_NAME or item_name_key(itemName) == DILATION_RING_KEY then return true; end
                 end
             end
         end
@@ -243,6 +251,7 @@ end
 local function get_upkeep_duration_adjustment(spellId)
     if tonumber(spellId) ~= STANDARD_SPELLS.Refresh.id and tonumber(spellId) ~= STANDARD_SPELLS.Haste.id then return 0; end
     local settings = get_settings();
+    if settings.dilationRingForceAdjust == true then return DILATION_RING_DURATION_BONUS; end
     if settings.dilationRingAutoAdjust == false then return 0; end
     if is_dilation_ring_equipped() then return DILATION_RING_DURATION_BONUS; end
     return 0;
@@ -525,7 +534,12 @@ function partyCare.ObserveSpellResult(casterServerId, interrupted, now)
     if pending == nil then return; end
     pendingUpkeepCasts[casterId] = nil;
     if interrupted then return; end
-    partyCare.ObserveCompletedSpell(pending.spellId, pending.targetServerId, now or os.clock(), pending.durationAdjustment);
+    -- Some Ashita/Horizon gear views can lag the action-start packet by a
+    -- frame. Re-check at completion and retain the greater adjustment, so a
+    -- Dilation Ring seen at either authoritative local-cast point is honored.
+    local adjustmentAtFinish = get_upkeep_duration_adjustment(pending.spellId);
+    local durationAdjustment = math.max(tonumber(pending.durationAdjustment) or 0, adjustmentAtFinish);
+    partyCare.ObserveCompletedSpell(pending.spellId, pending.targetServerId, now or os.clock(), durationAdjustment);
 end
 
 -- Called only when a complete, non-interrupted Refresh/Haste action has been

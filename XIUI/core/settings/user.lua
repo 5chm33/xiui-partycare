@@ -513,6 +513,9 @@ function M.createUserSettingsDefaults()
             -- casts. Capture the equipped-ring modifier when a cast starts so
             -- the early visual cue does not fire too soon.
             dilationRingAutoAdjust = true,
+            -- Manual fallback for a client or gear processor that does not
+            -- expose the equipped ring through Ashita inventory memory.
+            dilationRingForceAdjust = false,
             remedies = T{
                 paralyze = T{ spell = 'Paralyna', enabled = true, priority = 100 },
                 doom = T{ spell = 'Cursna', enabled = true, priority = 97 },

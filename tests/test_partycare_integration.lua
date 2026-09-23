@@ -220,7 +220,29 @@ assert_equal(state.alertKind, nil, 'Dilation Ring Refresh must not pulse at the 
 state = care.GetMemberState(member, 0, 267);
 assert_equal(state.alertKind, 'refresh_expiring', 'Dilation Ring Refresh must pulse during the final 15 seconds of its extended duration');
 
+-- Re-checking at completion covers a one-frame-late gear view, and the manual
+-- fallback remains available for any client that cannot expose equipped gear.
+dilationRingEquipped = false;
+care.Reset();
+care.ObserveStartedSpell(900, 109, 101, 100);
+dilationRingEquipped = true;
+care.ObserveSpellResult(900, false, 102);
+state = care.GetMemberState(member, 0, 252);
+assert_equal(state.alertKind, nil, 'Dilation Ring found at spell completion must extend Refresh timing');
+
+dilationRingEquipped = false;
+_G.gConfig.partyCare.dilationRingForceAdjust = true;
+care.Reset();
+care.ObserveStartedSpell(900, 109, 101, 100);
+care.ObserveSpellResult(900, false, 102);
+state = care.GetMemberState(member, 0, 252);
+assert_equal(state.alertKind, nil, 'forced Dilation Ring adjustment must extend Refresh without inventory detection');
+state = care.GetMemberState(member, 0, 267);
+assert_equal(state.alertKind, 'refresh_expiring', 'forced Dilation Ring adjustment must retain final lead timing');
+_G.gConfig.partyCare.dilationRingForceAdjust = false;
+
 _G.gConfig.partyCare.refreshPulseEnabled = false;
+dilationRingEquipped = true;
 member.buffs = { [1] = 33, [2] = 255 };
 care.Reset();
 care.ObserveStartedSpell(900, 57, 101, 100);

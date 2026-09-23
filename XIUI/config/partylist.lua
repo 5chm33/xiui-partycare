@@ -110,7 +110,9 @@ local function DrawPartyCareSettings()
             end
         end
         components.DrawPartyCheckbox(care, 'Auto-adjust for equipped Dilation Ring (+30s)##pcDilationRing', 'dilationRingAutoAdjust');
-        imgui.ShowHelp('When Dilation Ring is equipped as your local Refresh or Haste begins, PartyCare adds HorizonXI’s +30-second ally duration to that observed cast. Leave this on unless you deliberately want the base-duration timer. Party status icons report active buffs, but not their remaining seconds.');
+        imgui.ShowHelp('When Dilation Ring is seen in the local equipment memory at Refresh or Haste start or completion, PartyCare adds HorizonXI’s +30-second ally duration to that observed cast. Leave this on unless you deliberately want the base-duration timer.');
+        components.DrawPartyCheckbox(care, 'Always apply Dilation Ring +30s to local casts##pcDilationRingForce', 'dilationRingForceAdjust');
+        imgui.ShowHelp('Fallback for a client or gear processor that does not expose Dilation Ring through Ashita inventory memory. Enable only while Dilation Ring is equipped for the cast: every locally observed Refresh and Haste will use the extra 30 seconds regardless of equipment detection.');
         imgui.TextDisabled('Red remedy alert > purple Refresh > yellow Haste. Positive icons clear missing cues; locally observed casts supply early timing.');
     end
 
