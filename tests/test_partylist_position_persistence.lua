@@ -1,4 +1,7 @@
-local ROOT = '/home/ubuntu/repos/xiui-partycare/XIUI/'
+-- Locate XIUI from this test file so the test is independent of checkout path.
+local testPath = debug.getinfo(1, 'S').source:sub(2)
+local testDirectory = testPath:match('^(.*[/\\])') or './'
+local ROOT = testDirectory .. '../XIUI/'
 package.path = ROOT .. '?.lua;' .. ROOT .. '?/init.lua;' .. package.path
 
 local empty_modules = {

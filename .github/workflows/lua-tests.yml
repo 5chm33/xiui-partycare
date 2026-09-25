@@ -1,0 +1,44 @@
+name: Lua syntax and regression tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lua54:
+    name: Lua 5.4 full tree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua 5.4
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes lua5.4
+      - name: Run syntax and deterministic regression tests
+        env:
+          LUA_BIN: lua5.4
+        run: ./tests/run.sh
+
+  moonjit:
+    name: MoonJIT 2.1 family
+    runs-on: ubuntu-latest
+    env:
+      # Pinned official MoonJIT v2.1-20190912 tag target, not a floating branch.
+      MOONJIT_REF: d0cda5cc00af8a6e86e3e0da9ea46ca593c3986c
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned MoonJIT
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes build-essential git
+          git clone https://github.com/moonjit/moonjit.git "$RUNNER_TEMP/moonjit"
+          git -C "$RUNNER_TEMP/moonjit" checkout --detach "$MOONJIT_REF"
+          make -C "$RUNNER_TEMP/moonjit"
+      - name: Run syntax and deterministic regression tests
+        env:
+          LUA_BIN: ${{ runner.temp }}/moonjit/src/luajit
+          LUA_SYNTAX_SCOPE: moonjit
+        run: ./tests/run.sh

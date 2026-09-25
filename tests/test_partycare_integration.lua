@@ -3,20 +3,47 @@
 
 package.path = './XIUI/?.lua;./XIUI/?/init.lua;' .. package.path;
 package.preload['common'] = function() end;
--- Ashita supplies LuaJIT's bit library at runtime.  Lua 5.4 in this local
--- test environment uses native bitwise operators, so expose the small subset
--- required by the module under test.
-_G.bit = {
-    band = function(a, b) return a & b; end,
-    bor = function(a, b, c, d)
-        local value = (a or 0) | (b or 0);
-        if c ~= nil then value = value | c; end
-        if d ~= nil then value = value | d; end
-        return value;
-    end,
-    lshift = function(a, n) return a << n; end,
-    rshift = function(a, n) return a >> n; end,
-};
+-- Ashita supplies LuaJIT's bit library at runtime. Prefer that library when
+-- available, then use a small arithmetic fallback so this test also parses
+-- and runs on stock Lua 5.1 and 5.4.
+local bitLibrary = rawget(_G, 'bit');
+if bitLibrary == nil then
+    local loaded, module = pcall(require, 'bit');
+    if loaded then bitLibrary = module; end
+end
+if bitLibrary == nil then
+    local UINT32 = 4294967296;
+    local function normalize(value) return value % UINT32; end
+    local function band(a, b)
+        a, b = normalize(a), normalize(b);
+        local result, place = 0, 1;
+        for _ = 1, 32 do
+            if a % 2 == 1 and b % 2 == 1 then result = result + place; end
+            a, b, place = math.floor(a / 2), math.floor(b / 2), place * 2;
+        end
+        return result;
+    end
+    local function borPair(a, b)
+        a, b = normalize(a), normalize(b);
+        local result, place = 0, 1;
+        for _ = 1, 32 do
+            if a % 2 == 1 or b % 2 == 1 then result = result + place; end
+            a, b, place = math.floor(a / 2), math.floor(b / 2), place * 2;
+        end
+        return result;
+    end
+    bitLibrary = {
+        band = band,
+        bor = function(...)
+            local value = 0;
+            for index = 1, select('#', ...) do value = borPair(value, select(index, ...)); end
+            return value;
+        end,
+        lshift = function(a, n) return normalize(normalize(a) * (2 ^ n)); end,
+        rshift = function(a, n) return math.floor(normalize(a) / (2 ^ n)); end,
+    };
+end
+_G.bit = bitLibrary;
 
 local queuedCommands = {};
 local learned = {};
